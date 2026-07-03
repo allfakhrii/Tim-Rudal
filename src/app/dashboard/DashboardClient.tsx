@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Lahan, RiwayatPanen } from '@/types';
-import { cekKelayakan, cariAlternatif, TANAMAN_DATABASE } from '@/utils/suitability';
+import { cekKelayakan, cariAlternatif, TANAMAN_DATABASE, evaluasiLahanDinamis, cariAlternatifDinamis } from '@/utils/suitability';
 import { supabase } from '@/utils/supabaseClient';
 import { showAlertModal, showConfirmModal } from '@/utils/swal';
 import { 
@@ -17,7 +17,10 @@ import {
   deleteLahan,
   updateLahanDetails,
   deleteRiwayatPanen,
-  updatePetaniProfile
+  updatePetaniProfile,
+  getTanamanList,
+  getTodayActivityLogs,
+  upsertActivityLog
 } from '@/utils/supabaseQueries';
 import { 
   Sprout, 
@@ -44,6 +47,8 @@ import {
   Settings,
   ThermometerSun,
   ChevronRight,
+  ChevronDown,
+  Search,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -84,7 +89,11 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   
   // Selected entities for drill-down
   const [selectedLahan, setSelectedLahan] = useState<Lahan | null>(null);
-  const [selectedCropId, setSelectedCropId] = useState<string>('padi');
+  const [cropsList, setCropsList] = useState<any[]>([]);
+  const [selectedCropId, setSelectedCropId] = useState<string>('');
+  const [isCropDropdownOpen, setIsCropDropdownOpen] = useState(false);
+  const [cropSearchQuery, setCropSearchQuery] = useState('');
+
   const [activeTab, setActiveTab] = useState<'lahan' | 'panen' | 'kalender'>('lahan');
   const [liveWeather, setLiveWeather] = useState<{suhu: number, curahHujan: number, currentTemp?: number, weatherDesc?: string} | null>(null);
 
@@ -92,6 +101,9 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   const [beratPanen, setBeratPanen] = useState<number | ''>('');
   const [statusHasil, setStatusHasil] = useState<RiwayatPanen['statusHasil']>('sukses');
   const [hargaJual, setHargaJual] = useState<number | ''>('');
+
+  // --- CHECKLIST & MONITORING STATES ---
+  const [checkedActivities, setCheckedActivities] = useState<Record<string, boolean>>({});
 
   // Fetch live weather for suitability check and monitoring
   useEffect(() => {
@@ -148,6 +160,27 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
       setLiveWeather(null);
     }
   }, [currentView, selectedLahan]);
+
+  // Fetch activity logs for the selected land
+  useEffect(() => {
+    if (selectedLahan && currentView === 'monitoring') {
+      const fetchLogs = async () => {
+        try {
+          const logs = await getTodayActivityLogs(selectedLahan.id);
+          const map: Record<string, boolean> = {};
+          logs.forEach(log => {
+            map[log.activity_name] = log.is_completed;
+          });
+          setCheckedActivities(map);
+        } catch (err) {
+          console.error('Error fetching today logs:', err);
+        }
+      };
+      fetchLogs();
+    } else {
+      setCheckedActivities({});
+    }
+  }, [selectedLahan, currentView]);
 
   // ==========================================
   // AUTHENTICATION & INITIALIZATION FLOW
@@ -213,12 +246,17 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   const loadDashboardData = async (userId: string) => {
     setDataLoading(true);
     try {
-      const [fetchedLahans, fetchedPanens] = await Promise.all([
+      const [fetchedLahans, fetchedPanens, fetchedCrops] = await Promise.all([
         getLahans(userId),
-        getRiwayatPanens(userId)
+        getRiwayatPanens(userId),
+        getTanamanList()
       ]);
       setLahans(fetchedLahans);
       setPanens(fetchedPanens);
+      setCropsList(fetchedCrops);
+      if (fetchedCrops.length > 0) {
+        setSelectedCropId(fetchedCrops[0].id);
+      }
     } catch (e) {
       console.error('Gagal memuat data:', e);
     } finally {
@@ -275,7 +313,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
     if (result) {
       setLahans(prev => [...prev, result]);
       setCurrentView('dashboard');
-      await showAlertModal('Berhasil', 'Lahan sawah berhasil disimpan ke cloud database Supabase!', 'success');
+      await showAlertModal('Berhasil', 'Lahan sawah berhasil disimpan!', 'success');
     } else {
       await showAlertModal('Gagal', 'Gagal menyimpan lahan. Silakan coba kembali.', 'error');
     }
@@ -343,11 +381,12 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   const handleConfirmTanam = async (cropId: string, customMitigasi?: string) => {
     if (!selectedLahan || !user) return;
 
-    const tanaman = TANAMAN_DATABASE.find(t => t.id === cropId);
+    const tanaman = cropsList.find(t => t.id === cropId);
     if (!tanaman) return;
 
-    const evalResult = cekKelayakan(selectedLahan, cropId);
-    const estimasiPanen = new Date(Date.now() + (tanaman.siklusTanamDays * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+    const evalResult = evaluasiLahanDinamis(selectedLahan, tanaman);
+    const cycleDays = tanaman.siklus_tanam_days || 120;
+    const estimasiPanen = new Date(Date.now() + (cycleDays * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
     const mitigasi = customMitigasi || evalResult.saranMitigasi;
 
     setDataLoading(true);
@@ -385,7 +424,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
       varietas: selectedLahan.varietasDitanam,
       tanggalPanen: new Date().toISOString().split('T')[0],
       statusHasil,
-      beratPanen: berat,
+      beratPanen: numBerat,
       pendapatanEstimasi
     };
 
@@ -396,7 +435,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
       await loadDashboardData(user.id);
       setCurrentView('dashboard');
       setSelectedLahan(null);
-      await showAlertModal('Panen Dicatat', 'Hasil panen berhasil tersimpan di Supabase! Lahan Anda telah di-reset ke status kosong.', 'success');
+      await showAlertModal('Panen Dicatat', 'Hasil panen berhasil disimpan! Status lahan Anda telah dikembalikan menjadi kosong.', 'success');
     } else {
       await showAlertModal('Gagal', 'Gagal mencatat hasil panen.', 'error');
     }
@@ -415,6 +454,36 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
     setDataLoading(false);
   };
 
+  const handleToggleActivity = async (activityName: string, isChecked: boolean) => {
+    if (!selectedLahan) return;
+    
+    // 1. Update local state immediately for visual responsiveness
+    const nextMap = { ...checkedActivities, [activityName]: isChecked };
+    setCheckedActivities(nextMap);
+
+    // 2. Persist to DB via upsert
+    try {
+      await upsertActivityLog(selectedLahan.id, activityName, isChecked);
+    } catch (err) {
+      console.warn('DB Log Activity Error (table might not exist yet):', err);
+    }
+
+    // 3. Define total items based on weather conditions
+    const isExtremeWeather = selectedLahan.ketinggian > 800 && selectedLahan.curahHujan > 250;
+    const requiredItems = isExtremeWeather 
+      ? ['Buka katup drainase sawah', 'Pemangkasan daun terbawah', 'Semprotkan fungisida organik', 'Monitor tanggul bedengan']
+      : ['Irigasi Harian Terjadwal', 'Pembersihan Parit', 'Pengecekan Mulsa Lahan'];
+
+    // 4. Calculate progress percentage
+    const completedCount = requiredItems.filter(item => nextMap[item]).length;
+    const totalCount = requiredItems.length;
+
+    // 5. Trigger Swal award if reaching 100% completion
+    if (completedCount === totalCount && isChecked) {
+      await showAlertModal('Luar biasa!', 'Pemeliharaan harian telah selesai 100% dan tercatat di sistem.', 'success');
+    }
+  };
+
   // --- DERIVED STATS ---
   const activeAlerts = lahans.filter(l => l.status === 'sedang-ditanam' && l.ketinggian > 800 && l.curahHujan > 250);
 
@@ -425,7 +494,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
     return (
       <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary mb-4"></div>
-        <p className="text-xs text-text-muted uppercase tracking-widest">Menghubungkan ke Supabase...</p>
+        <p className="text-xs text-text-muted uppercase tracking-widest">Menghubungkan...</p>
       </div>
     );
   }
@@ -539,8 +608,15 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   // ==========================================================================
   if (currentView === 'suitability' && selectedLahan) {
     const lahanToEvaluate = liveWeather ? { ...selectedLahan, suhu: liveWeather.suhu, curahHujan: liveWeather.curahHujan } : selectedLahan;
-    const evalResult = cekKelayakan(lahanToEvaluate, selectedCropId);
-    const alternatifList = cariAlternatif(lahanToEvaluate);
+    const activeCrop = cropsList.find(c => c.id === selectedCropId) || (cropsList.length > 0 ? cropsList[0] : null);
+    const evalResult = activeCrop 
+      ? evaluasiLahanDinamis(lahanToEvaluate, activeCrop) 
+      : { layak: false, skor: 0, kendala: [], siklusPemupukan: [], kebutuhanAirDaily: 5, saranMitigasi: '' };
+    const alternatifList = cropsList.length > 0 ? cariAlternatifDinamis(lahanToEvaluate, cropsList) : [];
+    const filteredCrops = cropsList.filter(crop =>
+      crop.nama.toLowerCase().includes(cropSearchQuery.toLowerCase()) ||
+      (crop.nama_latin && crop.nama_latin.toLowerCase().includes(cropSearchQuery.toLowerCase()))
+    );
 
     return (
       <div className="min-h-screen bg-bg-dark py-8 px-4">
@@ -565,53 +641,122 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
           {/* Pilihan Jenis Tanaman */}
           <div className="mb-8 bg-bg-dark border border-border-medium rounded-2xl p-5">
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Pilih Komoditas Tanaman</label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {TANAMAN_DATABASE.map(crop => (
-                <button
-                  key={crop.id}
-                  onClick={() => setSelectedCropId(crop.id)}
-                  className={`py-3 px-2 rounded-xl border text-center transition-all ${
-                    selectedCropId === crop.id
-                      ? 'border-primary bg-primary/10 text-primary-light font-bold'
-                      : 'border-border-medium hover:bg-border-light text-text-muted'
-                  }`}
-                >
-                  <span className="block text-sm">{crop.nama}</span>
-                </button>
-              ))}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsCropDropdownOpen(!isCropDropdownOpen)}
+                className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-left text-white focus:outline-none focus:border-primary transition-all text-sm font-bold flex justify-between items-center"
+              >
+                <span>
+                  {activeCrop ? `${activeCrop.nama} ${activeCrop.nama_latin ? `(${activeCrop.nama_latin})` : ''}` : 'Pilih Komoditas Tanaman'}
+                </span>
+                <ChevronDown className={`w-4 h-4 transform transition-transform duration-200 ${isCropDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isCropDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => { setIsCropDropdownOpen(false); setCropSearchQuery(''); }} />
+                  <div className="absolute z-50 mt-2 w-full bg-bg-card border border-border-medium rounded-xl shadow-2xl p-3 space-y-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Cari komoditas..."
+                        value={cropSearchQuery}
+                        onChange={(e) => setCropSearchQuery(e.target.value)}
+                        className="w-full bg-bg-dark border border-white/10 rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-primary transition-all text-xs"
+                        autoFocus
+                      />
+                      <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-text-muted" />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar">
+                      {filteredCrops.length > 0 ? (
+                        filteredCrops.map(crop => (
+                          <button
+                            key={crop.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCropId(crop.id);
+                              setIsCropDropdownOpen(false);
+                              setCropSearchQuery('');
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex flex-col ${
+                              crop.id === selectedCropId
+                                ? 'bg-primary/20 border border-primary text-white font-bold'
+                                : 'hover:bg-white/5 text-text-muted hover:text-text-main'
+                            }`}
+                          >
+                            <span className="font-bold">{crop.nama}</span>
+                            {crop.nama_latin && <span className="text-[10px] italic opacity-60">{crop.nama_latin}</span>}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="text-center py-4 text-xs text-text-muted">Komoditas tidak ditemukan</div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* HASIL ANALISIS KELAYAKAN */}
           <div className="space-y-6">
             <div className="flex items-start gap-4 p-5 rounded-2xl border bg-bg-dark border-border-light">
-              <div className="mt-1">
-                {evalResult.layak ? (
-                  <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                  </div>
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30">
-                    <XCircle className="h-6 w-6 text-red-500" />
-                  </div>
-                )}
+              <div className="mt-1 flex-shrink-0">
+                <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+                  <Activity className="h-5 w-5 text-text-muted" />
+                </div>
               </div>
-              <div className="flex-grow">
-                <div className="flex justify-between items-start mb-2">
+              <div className="flex-grow w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                   <h3 className="font-bold text-lg text-text-main">
-                    {evalResult.layak ? 'Lahan Layak Ditanami' : 'Lahan Kurang Layak'}
+                    {evalResult.details?.some((d: any) => d.rating === 'N' || d.rating === 'S3') 
+                      ? 'Evaluasi Kelayakan Tanam' 
+                      : 'Lahan Sangat Layak Ditanami'}
                   </h3>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    evalResult.layak ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
-                  }`}>
-                    Kecocokan: {evalResult.skor}%
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-text-muted">Skor Kecocokan:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                      (evalResult.skorPotensial || evalResult.skor) >= 75 ? 'bg-emerald-950/20 text-emerald-400 border-emerald-500/10' :
+                      (evalResult.skorPotensial || evalResult.skor) >= 50 ? 'bg-amber-950/20 text-amber-400 border-amber-500/10' :
+                      'bg-red-950/20 text-red-400 border-red-500/10'
+                    }`}>
+                      {evalResult.skor}%
+                      {evalResult.skorPotensial && evalResult.skorPotensial > evalResult.skor && (
+                        <span className="text-text-muted font-normal"> → <strong className="text-emerald-400/90 font-bold">{evalResult.skorPotensial}% setelah Mitigasi</strong></span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual Progress Bar */}
+                <div className="w-full bg-bg-card h-2.5 rounded-full overflow-hidden mb-4 border border-white/5 p-[1px] relative">
+                  {/* Potential score bar extension (semi-transparent) */}
+                  {evalResult.skorPotensial && evalResult.skorPotensial > evalResult.skor && (
+                    <div 
+                      className={`absolute top-0 bottom-0 left-0 rounded-full opacity-35 transition-all duration-500 ${
+                        evalResult.skorPotensial >= 75 ? 'bg-emerald-500' :
+                        evalResult.skorPotensial >= 50 ? 'bg-amber-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${evalResult.skorPotensial}%` }}
+                    />
+                  )}
+                  {/* Current score bar */}
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 relative z-10 ${
+                      evalResult.skor >= 75 ? 'bg-gradient-to-r from-emerald-600 to-emerald-500' :
+                      evalResult.skor >= 50 ? 'bg-gradient-to-r from-amber-600 to-amber-500' :
+                      'bg-gradient-to-r from-red-600 to-red-500'
+                    }`}
+                    style={{ width: `${evalResult.skor}%` }}
+                  />
                 </div>
                 
                 {evalResult.kendala.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    <span className="text-xs font-semibold text-red-400 block uppercase tracking-wider">Deteksi Kendala:</span>
-                    <ul className="list-disc pl-5 text-sm text-text-muted space-y-1">
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold text-amber-500/90 block uppercase tracking-wider">Deteksi Kendala:</span>
+                    <ul className="list-disc pl-4 text-xs text-text-muted space-y-1">
                       {evalResult.kendala.map((k, i) => <li key={`k-${i}`}>{k}</li>)}
                     </ul>
                   </div>
@@ -620,6 +765,56 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                 )}
               </div>
             </div>
+
+            {/* TABEL KOMPARASI PARAMETER */}
+            {evalResult.details && evalResult.details.length > 0 && (
+              <div className="bg-bg-dark border border-border-light rounded-2xl p-5 shadow-inner">
+                <h4 className="font-bold text-text-main text-sm mb-4 flex items-center gap-2">
+                  <Activity className="w-4.5 h-4.5 text-primary-light" />
+                  <span>Detail Perbandingan Parameter</span>
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-text-muted">
+                        <th className="py-2.5 px-3 font-semibold uppercase tracking-wider">Parameter</th>
+                        <th className="py-2.5 px-3 font-semibold uppercase tracking-wider">Lahan Anda</th>
+                        <th className="py-2.5 px-3 font-semibold uppercase tracking-wider">Ideal (S1)</th>
+                        <th className="py-2.5 px-3 font-semibold uppercase tracking-wider text-center">Kelas</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {evalResult.details.map((detail, index) => {
+                        const isN = detail.rating === 'N';
+                        const isS3 = detail.rating === 'S3';
+                        const isS2 = detail.rating === 'S2';
+                        
+                        const rowBg = 'hover:bg-white/5 transition-colors';
+
+                        let ratingBadgeColor = '';
+                        if (isN) ratingBadgeColor = 'text-red-400 font-bold';
+                        else if (isS3) ratingBadgeColor = 'text-amber-500 font-bold';
+                        else if (isS2) ratingBadgeColor = 'text-blue-400/90 font-medium';
+                        else ratingBadgeColor = 'text-zinc-500 font-medium';
+
+                        return (
+                          <tr key={`param-${index}`} className={rowBg}>
+                            <td className="py-3 px-3 font-medium text-text-main">{detail.label}</td>
+                            <td className="py-3 px-3 text-text-muted">{detail.actual}</td>
+                            <td className="py-3 px-3 text-text-muted">{detail.ideal}</td>
+                            <td className="py-3 px-3 text-center">
+                              <span className={`inline-block text-[10px] tracking-wider ${ratingBadgeColor}`}>
+                                {detail.rating}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Jika LAYAK: Tampilkan Kalender Kerja / Estimasi */}
             {evalResult.layak && (
@@ -632,7 +827,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   <ul className="text-xs text-text-muted space-y-3">
                     {evalResult.siklusPemupukan.map((step, i) => (
                       <li key={`s-${i}`} className="flex items-start gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5"></span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></span>
                         <span>{step}</span>
                       </li>
                     ))}
@@ -652,7 +847,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                     </div>
                     <div>
                       <span className="text-text-muted block mb-0.5">Siklus Panen</span>
-                      <strong className="text-text-main text-sm">{TANAMAN_DATABASE.find(t => t.id === selectedCropId)?.siklusTanamDays} Hari</strong>
+                      <strong className="text-text-main text-sm">{cropsList.find(t => t.id === selectedCropId)?.siklus_tanam_days || 120} Hari</strong>
                     </div>
                   </div>
                   <p className="text-xs text-text-muted leading-relaxed border-t border-border-light pt-2 mt-2">
@@ -662,37 +857,96 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
               </div>
             )}
 
-            {/* OPSI MITIGASI / KEPUTUSAN JIKA TIDAK LAYAK */}
-            {!evalResult.layak && (
-              <div className="space-y-4 border-t border-border-light pt-6">
-                <div className="p-4 rounded-xl bg-orange-600/10 border border-orange-500/20 text-xs text-orange-400 leading-relaxed">
-                  <strong>Analisis Mitigasi:</strong> Meskipun lahan kurang layak, Anda tetap dapat memaksakan penanaman dengan menerapkan langkah mitigasi khusus. Atau, cari komoditas alternatif yang lebih menguntungkan untuk wilayah ini.
-                </div>
+            {/* ANALISIS MITIGASI TAKTIS & DINAMIS (Tampil jika ada parameter sub-optimal: S2/S3/N) */}
+            {(() => {
+              const mitigasiTaktis: any[] = [];
+              if (evalResult.details) {
+                evalResult.details.forEach((detail: any) => {
+                  if (detail.rating === 'S1') return;
 
-                <div className="p-5 rounded-2xl bg-bg-dark border border-border-light">
-                  <h4 className="font-bold text-text-main mb-3 text-sm flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    <span>Rekomendasi Tanaman Alternatif Terdekat</span>
+                  let text = '';
+                  if (detail.parameter === 'tekstur_tanah') {
+                    text = 'Penambahan bahan organik secara masif (kompos/pupuk kandang matang sebanyak 2-3 kg/m²) untuk meningkatkan struktur agregat tanah, menunjang retensi air, dan memulihkan sirkulasi udara pada daerah perakaran.';
+                  } else if (detail.parameter === 'drainase') {
+                    if (detail.rating === 'S2') {
+                      text = 'Kondisi drainase sedikit terhambat/cepat. Disarankan untuk memantau intensitas pemberian air harian dan membuat parit drainase sekunder dengan kedalaman sedang (15-20 cm) agar tanah tidak jenuh air.';
+                    } else { // S3 atau N
+                      text = 'Sistem drainase sangat buruk/ekstrem. Buat parit bedengan yang tinggi (minimal 30 cm) dan saluran pembuangan air utama di keliling lahan untuk mencegah genangan air lama yang memicu busuk perakaran.';
+                    }
+                  } else if (detail.parameter === 'ph_tanah') {
+                    const phVal = parseFloat(detail.actual) || 6.5;
+                    if (phVal < 5.5) {
+                      text = 'Tanah terlalu asam (pH rendah). Aplikasikan kapur pertanian (dolomit) sebanyak 150-200 gram/m² sekitar 2-3 minggu sebelum tanam untuk menetralkan pH dan menambah kalsium (Ca) serta magnesium (Mg).';
+                    } else if (phVal > 7.5) {
+                      text = 'Tanah terlalu basa (pH tinggi). Berikan belerang hiasan (sulfur) atau aplikasikan pupuk amonium sulfat (ZA) serta pupuk organik untuk membantu menurunkan pH ke arah netral secara bertahap.';
+                    } else {
+                      text = 'Derajat keasaman tanah (pH) berada di luar batas ideal. Lakukan pemupukan bahan organik matang atau berikan dolomit/sulfur sesuai dengan uji indikator laboratorium.';
+                    }
+                  } else if (detail.parameter === 'lereng') {
+                    text = 'Kemiringan lereng tidak ideal. Terapkan metode terasering (sengkedan) serta buat sabuk gunung / penanaman rumput vetiver di bibir lereng untuk memitigasi risiko erosi lapisan tanah atas (topsoil) yang subur.';
+                  } else if (detail.parameter === 'temperatur') {
+                    text = 'Suhu udara ekstrem. Gunakan jaring naungan (paranet dengan kerapatan 50-70%) atau aplikasikan mulsa plastik/organik (jerami) pada permukaan tanah untuk menstabilkan suhu mikro tanah dan mereduksi evaporasi.';
+                  } else if (detail.parameter === 'curah_hujan') {
+                    text = 'Volume curah hujan tidak sesuai. Jika terlalu rendah, buat penampung air (embung) dan pasang instalasi irigasi tetes (drip irrigation). Jika terlalu tinggi, optimalkan kapasitas saluran pembuangan utama.';
+                  } else if (detail.parameter === 'ketinggian') {
+                    text = 'Ketinggian wilayah kurang ideal untuk komoditas ini. Pertahankan suhu tanah tetap sejuk dengan mengoptimalkan ketebalan mulsa penutup tanah dan memilih varietas benih yang tahan suhu panas/dingin.';
+                  }
+
+                  if (text) {
+                    mitigasiTaktis.push({ label: detail.label, rating: detail.rating, text });
+                  }
+                });
+              }
+
+              if (mitigasiTaktis.length === 0) return null;
+
+              return (
+                <div className="p-5 rounded-r-2xl rounded-l-none border-l-4 border-l-amber-500/80 border-y border-r border-border-light bg-bg-dark text-xs text-text-muted space-y-4 shadow-md">
+                  <h4 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2 text-text-main">
+                    <AlertTriangle className="w-4.5 h-4.5 text-amber-500/85" />
+                    <span>Rencana & Rekomendasi Mitigasi Taktis</span>
                   </h4>
-                  <div className="space-y-2">
-                    {alternatifList.filter(a => a.tanaman.id !== selectedCropId).slice(0, 2).map((alt) => (
-                      <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-border-light border border-border-light rounded-xl text-xs">
-                        <div>
-                          <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
-                          <span className="text-text-muted">Estimasi panen: {alt.tanaman.siklusTanamDays} hari</span>
+                  <div className="space-y-4 divide-y divide-white/5">
+                    {mitigasiTaktis.map((m, idx) => (
+                      <div key={`mitigasi-${idx}`} className="pt-3 first:pt-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="font-semibold text-text-main text-xs">{m.label}</span>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-emerald-400 font-bold">Kecocokan: {alt.evaluasi.skor}%</span>
-                          <button
-                            onClick={() => setSelectedCropId(alt.tanaman.id)}
-                            className="bg-border-medium hover:bg-white/20 text-text-main font-semibold py-1.5 px-3 rounded-lg"
-                          >
-                            Pilih
-                          </button>
-                        </div>
+                        <p className="text-text-muted leading-relaxed text-xs">
+                          {m.text}
+                        </p>
                       </div>
                     ))}
                   </div>
+                </div>
+              );
+            })()}
+
+            {/* OPSI REKOMENDASI ALTERNATIF JIKA ADA KENDALA */}
+            {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId).length > 0 && (
+              <div className="p-5 rounded-2xl bg-bg-dark border border-border-light space-y-4 shadow-md">
+                <h4 className="font-bold text-text-main text-sm flex items-center gap-2 border-b border-border-light/40 pb-2">
+                  <TrendingUp className="w-4.5 h-4.5 text-primary-light" />
+                  <span>Rekomendasi Tanaman Alternatif Terdekat</span>
+                </h4>
+                <div className="space-y-3">
+                  {alternatifList.filter(a => a.tanaman.id !== selectedCropId).slice(0, 2).map((alt) => (
+                    <div key={alt.tanaman.id} className="flex items-center justify-between p-3.5 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/20 transition-all">
+                      <div className="space-y-1">
+                        <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
+                        <span className="text-text-muted block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-emerald-400/90 font-semibold bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-500/10">Kecocokan: {alt.evaluasi.skor}%</span>
+                        <button
+                          onClick={() => setSelectedCropId(alt.tanaman.id)}
+                          className="bg-border-medium hover:bg-white/10 text-text-main font-bold py-2 px-4 rounded-xl transition-all text-[11px] cursor-pointer"
+                        >
+                          Pilih
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -734,9 +988,19 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   if (currentView === 'monitoring' && selectedLahan) {
     const isExtremeWeather = selectedLahan.ketinggian > 800 && selectedLahan.curahHujan > 250;
 
+    const mockTrendData = [
+      { name: 'Sen', kelembapan: 75, suhu: 24.2 },
+      { name: 'Sel', kelembapan: 78, suhu: 24.8 },
+      { name: 'Rab', kelembapan: 76, suhu: 25.1 },
+      { name: 'Kam', kelembapan: 82, suhu: 23.5 },
+      { name: 'Jum', kelembapan: 79, suhu: 24.0 },
+      { name: 'Sab', kelembapan: 77, suhu: 24.5 },
+      { name: 'Min', kelembapan: 78, suhu: 25.0 }
+    ];
+
     return (
       <div className="min-h-screen bg-bg-dark py-8 px-4">
-        <div className="max-w-3xl mx-auto bg-bg-card border border-border-medium rounded-3xl p-6 md:p-8 shadow-2xl">
+        <div className="max-w-4xl mx-auto bg-bg-card border border-border-medium rounded-3xl p-6 md:p-8 shadow-2xl">
           
           <button 
             onClick={() => {
@@ -749,7 +1013,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
             <span>Kembali ke Dashboard</span>
           </button>
 
-          <div className="flex justify-between items-start mb-4 border-b border-border-light pb-4">
+          <div className="flex justify-between items-start mb-6 border-b border-border-light pb-4">
             <div>
               <span className="text-xs bg-primary-dark/30 text-primary-light font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Sedang Ditanam</span>
               <h2 className="text-2xl font-bold text-text-main mt-2">{selectedLahan.nama}</h2>
@@ -763,73 +1027,244 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
             )}
           </div>
 
-          {/* DETEKSI GEOSPATIAL & CUACA REAL-TIME */}
+          {/* METRICS SUMMARY GRID */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-bg-dark p-4 rounded-xl border border-border-light">
-              <span className="text-text-muted text-xs block mb-1">Status Sensor Kelembapan</span>
-              <div className="flex items-center gap-2">
-                <Droplet className="w-4.5 h-4.5 text-primary-light" />
-                <strong className="text-text-main text-base">78% (Kelembapan Optimal)</strong>
+            <div className="bg-bg-dark p-5 rounded-2xl border border-border-light">
+              <span className="text-text-muted text-[11px] block mb-1 uppercase tracking-wider font-semibold">Sensor Kelembapan</span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <strong className="text-2xl font-bold text-text-main">78%</strong>
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-955/20 px-1.5 py-0.5 rounded border border-emerald-500/10">Optimal</span>
               </div>
+              <p className="text-[10px] text-text-muted mt-2">Kondisi media tanam optimal untuk perakaran.</p>
             </div>
-            <div className="bg-bg-dark p-4 rounded-xl border border-border-light">
-              <span className="text-text-muted text-xs block mb-1">Cuaca Hari Ini</span>
-              <div className="flex items-center gap-2">
-                <CloudRain className="w-4.5 h-4.5 text-blue-400" />
-                <strong className="text-text-main text-base">
-                  {liveWeather ? `${liveWeather.weatherDesc} (${liveWeather.currentTemp}°C)` : 'Memuat...'}
+
+            <div className="bg-bg-dark p-5 rounded-2xl border border-border-light">
+              <span className="text-text-muted text-[11px] block mb-1 uppercase tracking-wider font-semibold">Suhu & Cuaca</span>
+              <div className="flex items-center gap-2 mt-1">
+                <CloudRain className="w-5 h-5 text-blue-400" />
+                <strong className="text-lg font-bold text-text-main">
+                  {liveWeather ? `${liveWeather.currentTemp}°C` : '24°C'}
                 </strong>
+                <span className="text-[10px] text-text-muted font-normal">
+                  ({liveWeather ? liveWeather.weatherDesc : 'Hujan Ringan'})
+                </span>
               </div>
+              <p className="text-[10px] text-text-muted mt-2">Suhu rata-rata harian terpantau stabil.</p>
             </div>
-            <div className="bg-bg-dark p-4 rounded-xl border border-border-light">
-              <span className="text-text-muted text-xs block mb-1">Estimasi Tanggal Panen</span>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4.5 h-4.5 text-orange-400" />
-                <strong className="text-text-main text-base">{selectedLahan.estimasiPanenDate}</strong>
+
+            <div className="bg-bg-dark p-5 rounded-2xl border border-border-light">
+              <span className="text-text-muted text-[11px] block mb-1 uppercase tracking-wider font-semibold">Proyeksi Panen</span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <strong className="text-base font-bold text-text-main">{selectedLahan.estimasiPanenDate}</strong>
+              </div>
+              <p className="text-[10px] text-text-muted mt-2">Perkiraan umur tanaman siap dipanen.</p>
+            </div>
+          </div>
+
+          {/* HISTORICAL TREND CHARTS */}
+          <div className="bg-bg-dark border border-border-light rounded-3xl p-5 mb-6">
+            <h3 className="font-bold text-text-main text-sm mb-4 flex items-center gap-2 border-b border-border-light/40 pb-2">
+              <Activity className="w-4.5 h-4.5 text-primary-light" />
+              <span>Tren Sensor Lahan (7 Hari Terakhir)</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Chart 1: Kelembapan */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-text-muted block">Status Kelembapan Lahan (%)</span>
+                <div className="bg-bg-card/50 border border-border-medium rounded-2xl p-3">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <AreaChart data={mockTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorMoisture" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff/5" vertical={false} />
+                      <XAxis dataKey="name" stroke="#6b7280" fontSize={10} tickLine={false} />
+                      <YAxis stroke="#6b7280" fontSize={10} tickLine={false} domain={[60, 100]} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                        labelStyle={{ color: '#a1a1aa', fontWeight: 'bold', fontSize: '11px' }}
+                        itemStyle={{ color: '#10b981', fontSize: '12px' }}
+                      />
+                      <Area type="monotone" dataKey="kelembapan" name="Kelembapan" stroke="#10b981" strokeWidth={1.5} fillOpacity={1} fill="url(#colorMoisture)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Chart 2: Suhu */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-text-muted block">Suhu Udara (°C)</span>
+                <div className="bg-bg-card/50 border border-border-medium rounded-2xl p-3">
+                  <ResponsiveContainer width="100%" height={160}>
+                    <AreaChart data={mockTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f5a623" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#f5a623" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff/5" vertical={false} />
+                      <XAxis dataKey="name" stroke="#6b7280" fontSize={10} tickLine={false} />
+                      <YAxis stroke="#6b7280" fontSize={10} tickLine={false} domain={[15, 35]} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                        labelStyle={{ color: '#a1a1aa', fontWeight: 'bold', fontSize: '11px' }}
+                        itemStyle={{ color: '#f5a623', fontSize: '12px' }}
+                      />
+                      <Area type="monotone" dataKey="suhu" name="Suhu" stroke="#f5a623" strokeWidth={1.5} fillOpacity={1} fill="url(#colorTemp)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* CUACA EKSTREM & EARLY WARNING BANNER */}
-          {isExtremeWeather ? (
-            <div className="bg-red-600/15 border border-red-500/30 rounded-2xl p-5 mb-6 space-y-3">
-              <h4 className="text-red-400 font-bold text-sm flex items-center gap-2">
-                <AlertTriangle className="w-4.5 h-4.5" />
-                <span>Sistem Peringatan Dini (Early Warning)</span>
-              </h4>
-              <p className="text-xs text-text-muted leading-relaxed">
-                Peta satelit mendeteksi adanya curah hujan ekstrim ({selectedLahan.curahHujan} mm/bln) di ketinggian lereng pegunungan ({selectedLahan.ketinggian} mdpl). Hal ini meningkatkan kelembapan tanah drastis dan memicu potensi busuk akar serta serangan wereng.
-              </p>
-              <div className="text-xs text-red-300 font-semibold">
-                Rekomendasi Tindakan Cepat:
-                <ul className="list-disc pl-5 font-normal mt-1 space-y-1">
-                  <li>Buka seluruh katup drainase di hilir sawah untuk mengeluarkan limpahan air berlebih.</li>
-                  <li>Lakukan pemangkasan daun terbawah pada varietas {selectedLahan.varietasDitanam} untuk mengurangi kelembapan rumpun.</li>
-                  <li>Semprotkan fungisida alami pencegah jamur sebelum badai esok hari.</li>
-                </ul>
+          {/* PANDUAN AKTIF & CHECKLIST MITIGASI */}
+          {(() => {
+            const requiredItems = isExtremeWeather 
+              ? ['Buka katup drainase sawah', 'Pemangkasan daun terbawah', 'Semprotkan fungisida organik', 'Monitor tanggul bedengan']
+              : ['Irigasi Harian Terjadwal', 'Pembersihan Parit', 'Pengecekan Mulsa Lahan'];
+            const completedCount = requiredItems.filter(item => checkedActivities[item]).length;
+            const progressPercent = requiredItems.length > 0 ? Math.round((completedCount / requiredItems.length) * 100) : 0;
+
+            return (
+              <div className="bg-bg-dark border border-border-light rounded-3xl p-5 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-border-light/40">
+                  <h3 className="font-bold text-text-main text-sm flex items-center gap-2">
+                    <CheckCircle2 className={`w-4.5 h-4.5 ${isExtremeWeather ? 'text-amber-500' : 'text-primary-light'}`} />
+                    <span>{isExtremeWeather ? 'Checklist Tindakan Penyelamatan Lahan' : 'Checklist Tindakan Pemeliharaan Rutin'}</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-text-muted">Progres:</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      progressPercent === 100 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-text-muted border border-white/10'
+                    }`}>
+                      {progressPercent}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-bg-card h-2 rounded-full overflow-hidden mb-4 border border-white/5 p-[1px] relative">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500 bg-emerald-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                
+                <p className="text-xs text-text-muted mb-4 leading-relaxed">
+                  {isExtremeWeather 
+                    ? `Kami mendeteksi anomali cuaca berupa curah hujan ekstrim (${selectedLahan.curahHujan} mm/bln) di ketinggian lahan ${selectedLahan.ketinggian} mdpl. Jalankan rekomendasi taktis berikut segera:`
+                    : `Kondisi curah hujan (${selectedLahan.curahHujan} mm/bln) dan suhu udara (${selectedLahan.suhu}°C) stabil di batas optimal. Jalankan perawatan harian berikut untuk memaksimalkan pertumbuhan varietas ${selectedLahan.varietasDitanam}:`}
+                </p>
+
+                <div className="space-y-2.5">
+                  {isExtremeWeather ? (
+                    <>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-amber-500/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Buka katup drainase sawah'] || false}
+                          onChange={(e) => handleToggleActivity('Buka katup drainase sawah', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Buka katup drainase sawah'] ? 'line-through text-text-muted' : ''}>Buka katup drainase sawah</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Keluarkan limpahan air berlebih untuk mencegah busuk akar.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-amber-500/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Pemangkasan daun terbawah'] || false}
+                          onChange={(e) => handleToggleActivity('Pemangkasan daun terbawah', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Pemangkasan daun terbawah'] ? 'line-through text-text-muted' : ''}>Pemangkasan daun terbawah</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Kurangi kelembapan rumpun tanaman varietas {selectedLahan.varietasDitanam}.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-amber-500/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Semprotkan fungisida organik'] || false}
+                          onChange={(e) => handleToggleActivity('Semprotkan fungisida organik', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Semprotkan fungisida organik'] ? 'line-through text-text-muted' : ''}>Semprotkan fungisida organik</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Lakukan pencegahan awal terhadap serangan jamur patogen.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-amber-500/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Monitor tanggul bedengan'] || false}
+                          onChange={(e) => handleToggleActivity('Monitor tanggul bedengan', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Monitor tanggul bedengan'] ? 'line-through text-text-muted' : ''}>Monitor tanggul bedengan</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Pastikan tidak terjadi sumbatan aliran air di saluran irigasi utama.</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Irigasi Harian Terjadwal'] || false}
+                          onChange={(e) => handleToggleActivity('Irigasi Harian Terjadwal', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-emerald-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Irigasi Harian Terjadwal'] ? 'line-through text-text-muted' : ''}>Irigasi Harian Terjadwal</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Salurkan air irigasi sebanyak {(selectedLahan.kebutuhanAirDaily || 5) * selectedLahan.luas} Liter di pagi hari.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Pembersihan Parit'] || false}
+                          onChange={(e) => handleToggleActivity('Pembersihan Parit', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-emerald-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Pembersihan Parit'] ? 'line-through text-text-muted' : ''}>Pembersihan Parit</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Bersihkan parit irigasi dari sisa gulma atau lumpur penyumbat.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/20 transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={checkedActivities['Pengecekan Mulsa Lahan'] || false}
+                          onChange={(e) => handleToggleActivity('Pengecekan Mulsa Lahan', e.target.checked)}
+                          className="mt-0.5 rounded border-white/10 text-emerald-500 focus:ring-0 focus:ring-offset-0 bg-transparent cursor-pointer" 
+                        />
+                        <div className="text-text-main">
+                          <strong className={checkedActivities['Pengecekan Mulsa Lahan'] ? 'line-through text-text-muted' : ''}>Pengecekan Mulsa Lahan</strong>
+                          <p className="text-[10px] text-text-muted mt-0.5">Pastikan mulsa organik/jerami penutup tanah tidak tergeser.</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 mb-6 space-y-2">
-              <h4 className="text-primary-light font-bold text-sm flex items-center gap-2">
-                <CheckCircle2 className="w-4.5 h-4.5" />
-                <span>Kondisi Lahan Terpantau Sehat</span>
-              </h4>
-              <p className="text-xs text-text-muted leading-relaxed">
-                Kondisi curah hujan ({selectedLahan.curahHujan} mm/bln) dan suhu ({selectedLahan.suhu}°C) berada di dalam batas normal. Rekomendasi penyiraman harian: {(selectedLahan.kebutuhanAirDaily || 5) * selectedLahan.luas} liter dialirkan pada pagi hari.
-              </p>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CATATAN MITIGASI SAAT CHECK SUITABILITY */}
           {selectedLahan.catatanMitigasi && (
-            <div className="bg-bg-dark border border-border-light rounded-2xl p-5 mb-6">
-              <h4 className="font-bold text-text-main mb-2 text-xs uppercase tracking-wider text-text-muted">Instruksi Budidaya & Mitigasi Tanam</h4>
+            <div className="bg-bg-dark border border-border-light rounded-3xl p-5 mb-6">
+              <h4 className="font-bold text-text-main mb-3 text-xs uppercase tracking-wider text-text-muted border-b border-border-light/40 pb-2">Instruksi Tanam Awal</h4>
               <p className="text-xs text-text-muted whitespace-pre-line leading-relaxed">{selectedLahan.catatanMitigasi}</p>
             </div>
           )}
-
-
 
           {/* ACTIONS */}
           <div className="flex gap-4 border-t border-border-light pt-6">
@@ -838,7 +1273,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                 setCurrentView('dashboard');
                 setSelectedLahan(null);
               }}
-              className="flex-1 py-3.5 px-4 rounded-xl border border-border-medium hover:bg-border-light text-text-muted font-bold text-sm transition-all text-center"
+              className="flex-1 py-3.5 px-4 rounded-xl border border-border-medium hover:bg-border-light text-text-muted font-bold text-sm transition-all text-center cursor-pointer"
             >
               Kembali
             </button>
@@ -846,19 +1281,16 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
             <button 
               onClick={() => {
                 // Initialize default values for the harvest form
-                const cropData = TANAMAN_DATABASE.find(t => t.nama === selectedLahan?.varietasDitanam);
-                const hargaDef = cropData?.hargaPasar ? (cropData.hargaPasar.min + cropData.hargaPasar.max) / 2 : 7000;
+                const cropData = cropsList.find(t => t.nama === selectedLahan?.varietasDitanam);
+                const hargaDef = 7000; // standard average default
                 
-                if (selectedLahan) {
-                  const potensiAvg = cropData?.potensiHasil ? (cropData.potensiHasil.min + cropData.potensiHasil.max) / 2 : 0.75;
-                  setBeratPanen(Math.round(selectedLahan.luas * potensiAvg)); // Default sukses (100%)
-                }
+                setBeratPanen(0);
                 
                 setHargaJual(hargaDef);
                 setStatusHasil('sukses');
                 setCurrentView('panen');
               }}
-              className="flex-1 py-3.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-text-main font-bold text-sm transition-all text-center shadow-lg shadow-orange-600/20"
+              className="flex-1 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-all text-center shadow-lg shadow-emerald-500/10 cursor-pointer"
             >
               Panen Lahan Sekarang
             </button>
@@ -873,8 +1305,8 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   // VIEW: HARVEST RECORDING
   // ==========================================================================
   if (currentView === 'panen' && selectedLahan) {
-    const cropData = TANAMAN_DATABASE.find(t => t.nama === selectedLahan.varietasDitanam);
-    const hargaDefault = cropData?.hargaPasar ? (cropData.hargaPasar.min + cropData.hargaPasar.max) / 2 : 7000;
+    const cropData = cropsList.find(t => t.nama === selectedLahan.varietasDitanam);
+    const hargaDefault = 7000;
     
     // Default values are now set in the onClick handler when entering this view.
 
@@ -910,8 +1342,8 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   setStatusHasil(newStatus);
                   
                   // Auto recalculate berat panen based on status (Smart feature)
-                  const cropData = TANAMAN_DATABASE.find(t => t.nama === selectedLahan.varietasDitanam);
-                  const potensiAvg = cropData?.potensiHasil ? (cropData.potensiHasil.min + cropData.potensiHasil.max) / 2 : 0.75;
+                  const cropData = cropsList.find(t => t.nama === selectedLahan.varietasDitanam);
+                  const potensiAvg = 0.75;
                   
                   let multiplier = 1;
                   if (newStatus === 'sebagian') multiplier = 0.5; // 50% yield
@@ -1292,8 +1724,19 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                         
                         {lahan.status === 'sedang-ditanam' && (
                           <button 
-                            onClick={() => handleUpdateStatusTanam(lahan.id, 'siap-panen')}
-                            className="px-3 bg-amber-500 hover:bg-amber-600 text-text-main font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center"
+                            onClick={async () => {
+                              const confirmed = await showConfirmModal(
+                                'Tandai Siap Panen',
+                                'Apakah Anda yakin ingin memanen lahan ini? Tindakan ini akan menandai status lahan siap panen.',
+                                'Ya, Panen Sekarang',
+                                'Batalkan'
+                              );
+                              if (confirmed) {
+                                await handleUpdateStatusTanam(lahan.id, 'siap-panen');
+                                await showAlertModal('Berhasil', 'Status lahan berhasil diubah menjadi Siap Panen!', 'success');
+                              }
+                            }}
+                            className="px-3 bg-amber-500 hover:bg-amber-600 text-text-main font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center cursor-pointer"
                             title="Tandai Siap Panen"
                           >
                             Siap Panen

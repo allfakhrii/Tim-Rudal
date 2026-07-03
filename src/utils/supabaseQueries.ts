@@ -30,6 +30,11 @@ export async function getLahans(petaniId: string): Promise<Lahan[]> {
     tipeDrainase: row.tipe_drainase,
     jenisTanah: row.jenis_tanah,
     riwayatHama: row.riwayat_hama,
+    pH: row.ph || undefined,
+    slope: row.slope || undefined,
+    clay: row.clay ? Number(row.clay) : undefined,
+    sand: row.sand ? Number(row.sand) : undefined,
+    cec: row.cec ? Number(row.cec) : undefined,
     status: row.status,
     varietasDitanam: row.varietas_ditanam || undefined,
     tanggalTanam: row.tanggal_tanam || undefined,
@@ -56,6 +61,11 @@ export async function insertLahan(lahan: Omit<Lahan, 'id' | 'status'>, petaniId:
         tipe_drainase: lahan.tipeDrainase,
         jenis_tanah: lahan.jenisTanah,
         riwayat_hama: lahan.riwayatHama,
+        ph: lahan.pH || null,
+        slope: lahan.slope || null,
+        clay: lahan.clay || null,
+        sand: lahan.sand || null,
+        cec: lahan.cec || null,
         status: 'kosong'
       }
     ])
@@ -79,6 +89,11 @@ export async function insertLahan(lahan: Omit<Lahan, 'id' | 'status'>, petaniId:
     tipeDrainase: row.tipe_drainase,
     jenisTanah: row.jenis_tanah,
     riwayatHama: row.riwayat_hama,
+    pH: row.ph || undefined,
+    slope: row.slope || undefined,
+    clay: row.clay ? Number(row.clay) : undefined,
+    sand: row.sand ? Number(row.sand) : undefined,
+    cec: row.cec ? Number(row.cec) : undefined,
     status: row.status
   };
 }
@@ -243,6 +258,11 @@ export async function updateLahanDetails(lahanId: string, lahan: Omit<Lahan, 'id
       tipe_drainase: lahan.tipeDrainase,
       jenis_tanah: lahan.jenisTanah,
       riwayat_hama: lahan.riwayatHama,
+      ph: lahan.pH || null,
+      slope: lahan.slope || null,
+      clay: lahan.clay || null,
+      sand: lahan.sand || null,
+      cec: lahan.cec || null,
     })
     .eq('id', lahanId);
 
@@ -265,6 +285,86 @@ export async function updatePetaniProfile(petaniId: string, nama: string, komodi
   if (error) {
     console.error('Gagal memperbarui profil petani:', error.message);
     return false;
+  }
+  return true;
+}
+
+export async function getTanamanList(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('tanaman')
+    .select('*, kriteria_tanaman(*)');
+
+  if (error) {
+    console.error('Gagal mengambil daftar tanaman:', error.message);
+    return [];
+  }
+  return data || [];
+}
+
+// ==========================================
+// 5. QUERY LOG AKTIVITAS (ACTIVITY LOGS)
+// ==========================================
+export async function getTodayActivityLogs(landId: string): Promise<any[]> {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('*')
+    .eq('land_id', landId)
+    .gte('created_at', `${today}T00:00:00.000Z`)
+    .lte('created_at', `${today}T23:59:59.999Z`);
+
+  if (error) {
+    console.error('Gagal mengambil log aktivitas hari ini:', error.message);
+    return [];
+  }
+  return data || [];
+}
+
+export async function upsertActivityLog(landId: string, activityName: string, isCompleted: boolean): Promise<boolean> {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Check if entry exists for today
+  const { data: existing, error: fetchError } = await supabase
+    .from('activity_logs')
+    .select('id')
+    .eq('land_id', landId)
+    .eq('activity_name', activityName)
+    .gte('created_at', `${today}T00:00:00.000Z`)
+    .lte('created_at', `${today}T23:59:59.999Z`)
+    .limit(1);
+
+  if (fetchError) {
+    console.error('Gagal mengecek log aktivitas:', fetchError.message);
+  }
+
+  if (existing && existing.length > 0) {
+    // Update
+    const { error } = await supabase
+      .from('activity_logs')
+      .update({ is_completed: isCompleted })
+      .eq('id', existing[0].id);
+
+    if (error) {
+      console.error('Gagal memperbarui log aktivitas:', error.message);
+      return false;
+    }
+  } else {
+    // Insert
+    const { error } = await supabase
+      .from('activity_logs')
+      .insert([
+        {
+          land_id: landId,
+          activity_name: activityName,
+          is_completed: isCompleted,
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+    if (error) {
+      console.error('Gagal membuat log aktivitas baru:', error.message);
+      return false;
+    }
   }
   return true;
 }
