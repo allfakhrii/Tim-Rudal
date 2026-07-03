@@ -1,0 +1,60 @@
+/* ==========================================================================
+   CUSTOM STYLES (Complementary to Tailwind CSS)
+   ========================================================================== */
+
+/* Active link indicator for navbar scroll */
+.nav-link.active {
+  color: #0f763e !important;
+  font-weight: 700;
+}
+
+.nav-link.active::after {
+  width: 100% !important;
+}
+
+/* Steps Section - Horizontal Line for Desktop (md: 768px) */
+@media (min-width: 768px) {
+  .steps-timeline::before {
+    content: '';
+    position: absolute;
+    top: 35px; /* Center of the 70px circle */
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), #00a859 50%, rgba(255, 255, 255, 0.05));
+    z-index: 1;
+  }
+}
+
+/* Steps Section - Vertical Line for Mobile */
+@media (max-width: 767px) {
+  .steps-timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 35px; /* Center of the circle (70px / 2 = 35px) */
+    width: 2px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), #00a859 50%, rgba(255, 255, 255, 0.05));
+    z-index: 1;
+  }
+}
+
+/* Hamburger active transformation */
+#mobile-toggle.active .bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+#mobile-toggle.active .bar:nth-child(2) {
+  opacity: 0;
+}
+
+#mobile-toggle.active .bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Scroll reveal transition helper */
+.reveal-el {
+  will-change: transform, opacity;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
