@@ -1,0 +1,104 @@
+[
+  {
+    "nama": "Buncis",
+    "siklus_tanam_days": 60,
+    "kriteria": [
+      {
+        "parameter": "suhu",
+        "s1_min": 18.0,
+        "s1_max": 24.0,
+        "s2_min": 15.0,
+        "s2_max": 27.0,
+        "s3_min": 12.0,
+        "s3_max": 30.0
+      },
+      {
+        "parameter": "curah_hujan",
+        "s1_min": 100.0,
+        "s1_max": 150.0,
+        "s2_min": 70.0,
+        "s2_max": 200.0,
+        "s3_min": 50.0,
+        "s3_max": 250.0
+      },
+      {
+        "parameter": "kelembaban",
+        "s1_min": 50.0,
+        "s1_max": 75.0,
+        "s2_min": 40.0,
+        "s2_max": 85.0,
+        "s3_min": 30.0,
+        "s3_max": 95.0
+      },
+      {
+        "parameter": "pH",
+        "s1_min": 5.8,
+        "s1_max": 6.8,
+        "s2_min": 5.5,
+        "s2_max": 7.5,
+        "s3_min": 5.0,
+        "s3_max": 8.0
+      },
+      {
+        "parameter": "slope",
+        "s1_min": 0.0,
+        "s1_max": 8.0,
+        "s2_min": 8.0,
+        "s2_max": 15.0,
+        "s3_min": 15.0,
+        "s3_max": 30.0
+      }
+    ]
+  },
+  {
+    "nama": "Wortel",
+    "siklus_tanam_days": 90,
+    "kriteria": [
+      {
+        "parameter": "suhu",
+        "s1_min": 15.0,
+        "s1_max": 20.0,
+        "s2_min": 12.0,
+        "s2_max": 23.0,
+        "s3_min": 9.0,
+        "s3_max": 26.0
+      },
+      {
+        "parameter": "curah_hujan",
+        "s1_min": 80.0,
+        "s1_max": 120.0,
+        "s2_min": 60.0,
+        "s2_max": 160.0,
+        "s3_min": 40.0,
+        "s3_max": 200.0
+      },
+      {
+        "parameter": "kelembaban",
+        "s1_min": 60.0,
+        "s1_max": 80.0,
+        "s2_min": 50.0,
+        "s2_max": 90.0,
+        "s3_min": 45.0,
+        "s3_max": 95.0
+      },
+      {
+        "parameter": "pH",
+        "s1_min": 5.5,
+        "s1_max": 6.5,
+        "s2_min": 5.0,
+        "s2_max": 7.0,
+        "s3_min": 4.5,
+        "s3_max": 7.5
+      },
+      {
+        "parameter": "slope",
+        "s1_min": 0.0,
+        "s1_max": 8.0,
+        "s2_min": 8.0,
+        "s2_max": 15.0,
+        "s3_min": 15.0,
+        "s3_max": 25.0
+      }
+    ]
+  }
+]

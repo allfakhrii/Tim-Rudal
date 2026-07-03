@@ -29,6 +29,7 @@ Setelah project siap:
 CREATE TABLE public.petani (
   id UUID REFERENCES auth.users NOT NULL PRIMARY KEY,
   nama TEXT NOT NULL,
+  email TEXT,
   komoditas_utama TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

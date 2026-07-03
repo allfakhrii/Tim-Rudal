@@ -112,7 +112,12 @@ export function cekKelayakan(lahan: Lahan, tanamanId: string): HasilEvaluasi {
   }
 
   // 5. Cek Drainase
-  if (lahan.tipeDrainase !== tanaman.drainaseCocok) {
+  const drainageIdealForBaik = ['Agak Baik', 'Baik', 'Agak Cepat', 'Cepat'];
+  const isDrainageIdeal = tanaman.drainaseCocok === 'Baik'
+    ? drainageIdealForBaik.includes(lahan.tipeDrainase)
+    : lahan.tipeDrainase === tanaman.drainaseCocok;
+
+  if (!isDrainageIdeal) {
     kendala.push(`Kondisi drainase kurang ideal (Sistem drainase lahan terdeteksi ${lahan.tipeDrainase.toLowerCase()})`);
     skor -= 20;
   }
@@ -147,7 +152,7 @@ export function cekKelayakan(lahan: Lahan, tanamanId: string): HasilEvaluasi {
     if (!tanaman.tanahCocok.includes(lahan.jenisTanah)) {
       saranMitigasi += `- Tambahkan amelioran tanah (kompos/pupuk kandang sebanyak 2-3 kg/m²) untuk meningkatkan struktur tanah ${lahan.jenisTanah}.\n`;
     }
-    if (lahan.tipeDrainase === 'Buruk') {
+    if (['Sangat Terhambat', 'Terhambat', 'Agak Terhambat'].includes(lahan.tipeDrainase)) {
       saranMitigasi += '- Buat parit bedengan yang lebih tinggi (minimal 30cm) untuk mempercepat aliran air berlebih.\n';
     }
     if (lahan.riwayatHama === 'Ada') {

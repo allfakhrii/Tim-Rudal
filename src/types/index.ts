@@ -7,10 +7,14 @@ export interface Lahan {
   ketinggian: number; // mdpl
   curahHujan: number; // mm/bulan
   suhu: number; // °C
-  tipeDrainase: 'Baik' | 'Buruk';
+  tipeDrainase: 'Sangat Terhambat' | 'Terhambat' | 'Agak Terhambat' | 'Agak Baik' | 'Baik' | 'Agak Cepat' | 'Cepat';
   jenisTanah: 'Humus' | 'Lempung' | 'Pasir' | 'Gambut';
   riwayatHama: 'Ada' | 'Tidak';
   pH?: string;
+  slope?: string;
+  clay?: number;
+  sand?: number;
+  cec?: number;
   status: 'kosong' | 'sedang-ditanam' | 'siap-panen';
   varietasDitanam?: string;
   tanggalTanam?: string;
