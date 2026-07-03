@@ -1,7 +1,0 @@
-# =========================================================================
-# WARNING: Pastikan di dashboard Supabase -> Authentication -> Redirect URLs
-# sudah didambahkan 'http://localhost:3000/dashboard' (atau origin lokal Anda)
-# agar alur konfirmasi email lokal terarah dengan benar ke instance lokal ini.
-# =========================================================================
-NEXT_PUBLIC_SUPABASE_URL=https://oslarakwbkpkucxmedcn.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zbGFyYWt3Ymtwa3VjeG1lZGNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMzYwODUsImV4cCI6MjA5ODYxMjA4NX0.rBQT2sqzBNySkqFatJwVQgl8wuK3FOb-XXuepszRf24
