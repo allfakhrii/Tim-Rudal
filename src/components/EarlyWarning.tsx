@@ -14,9 +14,17 @@ export default function EarlyWarning({ lahans }: { lahans: Lahan[] }) {
   useEffect(() => {
     if (lat === undefined || lng === undefined) return;
 
-    // Fetch 3 days forecast
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_sum,temperature_2m_max,windspeed_10m_max&timezone=Asia%2FJakarta&forecast_days=3`)
-      .then(res => res.json())
+    // Tambahkan timeout 3 detik
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=precipitation_sum,temperature_2m_max,windspeed_10m_max&timezone=Asia%2FJakarta&forecast_days=3`, {
+      signal: controller.signal
+    })
+      .then(res => {
+        clearTimeout(timeoutId);
+        return res.json();
+      })
       .then(data => {
         if (data.daily) {
           for (let i = 0; i < data.daily.time.length; i++) {
@@ -47,7 +55,10 @@ export default function EarlyWarning({ lahans }: { lahans: Lahan[] }) {
           }
         }
       })
-      .catch(console.error);
+      .catch(error => {
+        // Gunakan console.warn alih-alih console.error agar tidak memicu layar error merah di Next.js saat internet mati
+        console.warn('Gagal memuat data cuaca untuk peringatan dini:', error.message);
+      });
   }, [lat, lng]);
 
   if (!warning) return null;

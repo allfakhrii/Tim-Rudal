@@ -11,11 +11,16 @@ import {
   startTanamLahan, 
   updateLahanStatus, 
   getRiwayatPanens, 
-  insertRiwayatPanen 
+  insertRiwayatPanen,
+  deleteLahan,
+  updateLahanDetails,
+  deleteRiwayatPanen,
+  updatePetaniProfile
 } from '@/utils/supabaseQueries';
 import { 
   Sprout, 
-  Map, 
+  Map as MapIcon, 
+  Map,
   TrendingUp, 
   AlertTriangle, 
   User, 
@@ -31,8 +36,16 @@ import {
   FileSpreadsheet,
   CloudRain,
   Lock,
-  Mail
+  Mail,
+  Edit2,
+  Trash2,
+  Settings,
+  Moon,
+  Sun,
+  ThermometerSun,
+  ChevronRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Dynamically import Map component (disable SSR for Leaflet window access)
 const PetaLahan = dynamic(() => import('@/components/PetaLahan'), { ssr: false });
@@ -58,29 +71,90 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState<boolean>(false);
   
   // Navigation / View state
-  // 'dashboard' | 'add-lahan' | 'suitability' | 'monitoring' | 'panen'
-  const [currentView, setCurrentView] = useState<'dashboard' | 'add-lahan' | 'suitability' | 'monitoring' | 'panen'>('dashboard');
+  // 'dashboard' | 'add-lahan' | 'edit-lahan' | 'suitability' | 'monitoring' | 'panen' | 'profile'
+  const [currentView, setCurrentView] = useState<'dashboard' | 'add-lahan' | 'edit-lahan' | 'suitability' | 'monitoring' | 'panen' | 'profile'>('dashboard');
+  
+  // Theme state
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('ecotani_theme');
+    if (savedTheme === 'light') {
+      setTheme('light');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('ecotani_theme', theme);
+  }, [theme]);
   
   // Selected entities for drill-down
   const [selectedLahan, setSelectedLahan] = useState<Lahan | null>(null);
   const [selectedCropId, setSelectedCropId] = useState<string>('padi');
   const [activeTab, setActiveTab] = useState<'lahan' | 'panen' | 'kalender'>('lahan');
-  const [liveWeather, setLiveWeather] = useState<{suhu: number, curahHujan: number} | null>(null);
+  const [liveWeather, setLiveWeather] = useState<{suhu: number, curahHujan: number, currentTemp?: number, weatherDesc?: string} | null>(null);
 
-  // Fetch live weather for suitability check
+  // --- HARVEST (PANEN) STATES ---
+  const [beratPanen, setBeratPanen] = useState<number | ''>('');
+  const [statusHasil, setStatusHasil] = useState<RiwayatPanen['statusHasil']>('sukses');
+  const [hargaJual, setHargaJual] = useState<number | ''>('');
+
+  // Fetch live weather for suitability check and monitoring
   useEffect(() => {
-    if (currentView === 'suitability' && selectedLahan) {
+    if ((currentView === 'suitability' || currentView === 'monitoring') && selectedLahan) {
       const [lat, lng] = selectedLahan.centroid;
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_mean,precipitation_sum&timezone=Asia%2FJakarta&forecast_days=14`)
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_mean,precipitation_sum&current=temperature_2m,weather_code&timezone=Asia%2FJakarta&forecast_days=14`, { signal: controller.signal })
         .then(res => res.json())
         .then(data => {
+            clearTimeout(timeoutId);
             if (data.daily) {
               const avgTemp = data.daily.temperature_2m_mean.reduce((a:number, b:number) => a+b, 0) / 14;
               const totalRain = data.daily.precipitation_sum.reduce((a:number, b:number) => a+b, 0); // 14 days rain
-              setLiveWeather({ suhu: Math.round(avgTemp * 10) / 10, curahHujan: Math.round(totalRain * (30/14)) }); // Project to monthly
+              
+              let wDesc = 'Berawan';
+              if (data.current) {
+                const code = data.current.weather_code;
+                if (code === 0) wDesc = 'Cerah';
+                else if (code <= 3) wDesc = 'Berawan';
+                else if (code >= 51 && code <= 67) wDesc = 'Hujan';
+                else if (code >= 71) wDesc = 'Badai';
+              }
+
+              setLiveWeather({ 
+                suhu: Math.round(avgTemp * 10) / 10, 
+                curahHujan: Math.round(totalRain * (30/14)),
+                currentTemp: data.current?.temperature_2m || Math.round(avgTemp),
+                weatherDesc: wDesc
+              });
             }
         })
-        .catch(console.error);
+        .catch(err => {
+            clearTimeout(timeoutId);
+            if (err.name !== 'AbortError') {
+              console.warn('Weather API Warning:', err.message);
+            }
+            // Fallback to simulated offline data
+            setLiveWeather({
+              suhu: selectedLahan.suhu,
+              curahHujan: selectedLahan.curahHujan,
+              currentTemp: selectedLahan.suhu,
+              weatherDesc: 'Cerah (Offline)'
+            });
+        });
+
+      return () => {
+        controller.abort();
+        clearTimeout(timeoutId);
+      };
     } else {
       setLiveWeather(null);
     }
@@ -94,7 +168,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // 1. Get current session
     supabase.auth.getUser().then(({ data: { user }, error }) => {
-      if (error) {
+      if (error && error.name !== 'AuthSessionMissingError') {
         console.error('Auth getUser error:', error);
       }
       setUser(user);
@@ -265,6 +339,63 @@ export default function DashboardPage() {
     }
   };
 
+  const handleUpdateLahan = async (lahanData: Omit<Lahan, 'id' | 'status'>) => {
+    if (!user || !selectedLahan) return;
+    
+    setDataLoading(true);
+    const success = await updateLahanDetails(selectedLahan.id, lahanData);
+    setDataLoading(false);
+
+    if (success) {
+      await loadDashboardData(user.id);
+      setCurrentView('dashboard');
+      setSelectedLahan(null);
+      alert('Perubahan lahan berhasil disimpan!');
+    } else {
+      alert('Gagal memperbarui lahan. Silakan coba kembali.');
+    }
+  };
+
+  const handleDeleteLahan = async (lahanId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus lahan ini secara permanen?')) return;
+    
+    const success = await deleteLahan(lahanId);
+    if (success) {
+      setLahans(lahans.filter(l => l.id !== lahanId));
+      if (selectedLahan?.id === lahanId) {
+        setSelectedLahan(null);
+        setCurrentView('dashboard');
+      }
+    } else {
+      alert('Gagal menghapus lahan. Silakan coba lagi.');
+    }
+  };
+
+  const handleDeleteRiwayat = async (riwayatId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus riwayat panen ini?')) return;
+    
+    const success = await deleteRiwayatPanen(riwayatId);
+    if (success) {
+      setPanens(panens.filter(p => p.id !== riwayatId));
+    } else {
+      alert('Gagal menghapus riwayat panen.');
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setDataLoading(true);
+    const success = await updatePetaniProfile(user.id, petaniName, petaniKomoditas);
+    setDataLoading(false);
+    if (success) {
+      alert('Profil berhasil diperbarui!');
+      setCurrentView('dashboard');
+    } else {
+      alert('Gagal memperbarui profil.');
+    }
+  };
+
   const handleConfirmTanam = async (cropId: string, customMitigasi?: string) => {
     if (!selectedLahan || !user) return;
 
@@ -296,10 +427,13 @@ export default function DashboardPage() {
     setDataLoading(false);
   };
 
-  const handleSimpanPanen = async (berat: number, statusHasil: RiwayatPanen['statusHasil'], hargaJualActual: number) => {
+  const handleSimpanPanen = async (berat: number | '', statusHasil: RiwayatPanen['statusHasil'], hargaJualActual: number | '') => {
     if (!selectedLahan || !selectedLahan.varietasDitanam || !user) return;
+    
+    const numBerat = typeof berat === 'number' ? berat : 0;
+    const numHarga = typeof hargaJualActual === 'number' ? hargaJualActual : 0;
 
-    const pendapatanEstimasi = berat * hargaJualActual;
+    const pendapatanEstimasi = numBerat * numHarga;
 
     const panenData: Omit<RiwayatPanen, 'id'> = {
       lahanId: selectedLahan.id,
@@ -347,7 +481,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary mb-4"></div>
-        <p className="text-xs text-gray-500 uppercase tracking-widest">Menghubungkan ke Supabase...</p>
+        <p className="text-xs text-text-muted uppercase tracking-widest">Menghubungkan ke Supabase...</p>
       </div>
     );
   }
@@ -358,69 +492,69 @@ export default function DashboardPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center px-4 relative overflow-hidden bg-[radial-gradient(circle_at_center,rgba(0,168,89,0.06),transparent_50%)]">
-        <div className="w-full max-w-md bg-bg-card border border-white/10 rounded-3xl p-8 shadow-2xl relative z-10">
+        <div className="w-full max-w-md bg-bg-card border border-border-medium rounded-3xl p-8 shadow-2xl relative z-10">
           
           <div className="flex items-center gap-3 justify-center mb-6">
             <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
               <Sprout className="h-6 w-6 text-primary" />
             </div>
-            <span className="text-2xl font-extrabold tracking-tight text-white">EcoTani</span>
+            <span className="text-2xl font-extrabold tracking-tight text-text-main">EcoTani</span>
           </div>
 
-          <h2 className="text-xl font-bold text-center text-white mb-1">
+          <h2 className="text-xl font-bold text-center text-text-main mb-1">
             {isRegisterMode ? 'Buat Akun Petani' : 'Masuk ke Platform'}
           </h2>
-          <p className="text-sm text-gray-400 text-center mb-6">
+          <p className="text-sm text-text-muted text-center mb-6">
             {isRegisterMode ? 'Mulai mengelola mitigasi pertanian dengan cloud database.' : 'Akses pemetaan geospatial sawah Anda.'}
           </p>
 
           {authError && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3.5 rounded-xl text-xs font-semibold mb-4 leading-relaxed">
-              ⚠️ {authError}
+              âš ï¸ {authError}
             </div>
           )}
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Alamat Email</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Alamat Email</label>
               <div className="relative">
-                <Mail className="w-4.5 h-4.5 text-gray-500 absolute left-4 top-3.5" />
+                <Mail className="w-4.5 h-4.5 text-text-muted absolute left-4 top-3.5" />
                 <input 
                   type="email" 
                   required
                   placeholder="nama@email.com" 
                   value={authEmail}
                   onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full bg-bg-dark border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                  className="w-full bg-bg-dark border border-border-medium rounded-xl pl-11 pr-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Kata Sandi</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Kata Sandi</label>
               <div className="relative">
-                <Lock className="w-4.5 h-4.5 text-gray-500 absolute left-4 top-3.5" />
+                <Lock className="w-4.5 h-4.5 text-text-muted absolute left-4 top-3.5" />
                 <input 
                   type="password" 
                   required
                   placeholder="Min. 6 Karakter" 
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full bg-bg-dark border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                  className="w-full bg-bg-dark border border-border-medium rounded-xl pl-11 pr-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
                 />
               </div>
             </div>
 
             <button 
               type="submit"
-              className="w-full bg-primary hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 mt-6 flex items-center justify-center gap-2"
+              className="w-full bg-primary hover:bg-emerald-600 text-text-main font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 mt-6 flex items-center justify-center gap-2"
             >
               <span>{isRegisterMode ? 'Daftar Sekarang' : 'Masuk Dashboard'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          <div className="border-t border-white/5 mt-6 pt-4 text-center">
+          <div className="border-t border-border-light mt-6 pt-4 text-center">
             <button
               onClick={() => {
                 setIsRegisterMode(!isRegisterMode);
@@ -442,37 +576,37 @@ export default function DashboardPage() {
   if (needProfileSetup) {
     return (
       <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center px-4 relative overflow-hidden bg-[radial-gradient(circle_at_center,rgba(0,168,89,0.06),transparent_50%)]">
-        <div className="w-full max-w-md bg-bg-card border border-white/10 rounded-3xl p-8 shadow-2xl relative z-10">
-          <h2 className="text-xl font-bold text-center text-white mb-2">Lengkapi Profil Petani</h2>
-          <p className="text-sm text-gray-400 text-center mb-6">Silakan lengkapi profil pertanian Anda untuk menginisialisasi dashboard geospatial.</p>
+        <div className="w-full max-w-md bg-bg-card border border-border-medium rounded-3xl p-8 shadow-2xl relative z-10">
+          <h2 className="text-xl font-bold text-center text-text-main mb-2">Lengkapi Profil Petani</h2>
+          <p className="text-sm text-text-muted text-center mb-6">Silakan lengkapi profil pertanian Anda untuk menginisialisasi dashboard geospatial.</p>
 
           <form onSubmit={handleProfileSetupSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nama Lengkap Petani</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Nama Lengkap Petani</label>
               <input 
                 type="text" 
                 required
                 placeholder="Contoh: Pak Tani Sugeng" 
                 value={petaniName}
                 onChange={(e) => setPetaniName(e.target.value)}
-                className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Komoditas Utama</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Komoditas Utama</label>
               <input 
                 type="text" 
                 placeholder="Contoh: Padi, Jagung, Bawang" 
                 value={petaniKomoditas}
                 onChange={(e) => setPetaniKomoditas(e.target.value)}
-                className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
               />
             </div>
 
             <button 
               type="submit"
-              className="w-full bg-primary hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2"
+              className="w-full bg-primary hover:bg-emerald-600 text-text-main font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 mt-4 flex items-center justify-center gap-2"
             >
               <span>Simpan & Buka Dashboard</span>
               <CheckCircle2 className="w-4 h-4" />
@@ -489,17 +623,17 @@ export default function DashboardPage() {
   if (currentView === 'add-lahan') {
     return (
       <div className="min-h-screen bg-bg-dark flex flex-col">
-        <header className="border-b border-white/5 py-4 px-6 bg-bg-card flex items-center justify-between">
+        <header className="border-b border-border-light py-4 px-6 bg-bg-card flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentView('dashboard')}
-              className="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors"
+              className="p-2 hover:bg-border-light rounded-full text-text-muted hover:text-text-main transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-bold text-white">Tandai Batas Wilayah Lahan Sawah</h1>
+            <h1 className="text-lg font-bold text-text-main">Tandai Batas Wilayah Lahan Sawah</h1>
           </div>
-          <span className="text-xs text-gray-400">Teknologi Geospatial EcoTani</span>
+          <span className="text-xs text-text-muted">Teknologi Geospatial EcoTani</span>
         </header>
 
         <main className="flex-grow p-4 md:p-6 overflow-hidden">
@@ -507,6 +641,43 @@ export default function DashboardPage() {
             onSaveLahan={handleAddLahan}
             savedLahans={lahans}
             onClose={() => setCurrentView('dashboard')}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ==========================================================================
+  // VIEW: EDIT LAHAN (GEOSPATIAL DRAWING)
+  // ==========================================================================
+  if (currentView === 'edit-lahan' && selectedLahan) {
+    return (
+      <div className="min-h-screen bg-bg-dark flex flex-col">
+        <header className="border-b border-border-light py-4 px-6 bg-bg-card flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => {
+                setCurrentView('dashboard');
+                setSelectedLahan(null);
+              }}
+              className="p-2 hover:bg-border-light rounded-full text-text-muted hover:text-text-main transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-text-main">Edit Lahan Sawah</h1>
+          </div>
+          <span className="text-xs text-text-muted">Teknologi Geospatial EcoTani</span>
+        </header>
+
+        <main className="flex-grow p-4 md:p-6 overflow-hidden">
+          <PetaLahan 
+            onSaveLahan={handleUpdateLahan}
+            savedLahans={lahans.filter(l => l.id !== selectedLahan.id)} // Exclude self from saved lahans rendering to avoid overlap confusion
+            onClose={() => {
+              setCurrentView('dashboard');
+              setSelectedLahan(null);
+            }}
+            initialLahan={selectedLahan}
           />
         </main>
       </div>
@@ -523,27 +694,27 @@ export default function DashboardPage() {
 
     return (
       <div className="min-h-screen bg-bg-dark py-8 px-4">
-        <div className="max-w-3xl mx-auto bg-bg-card border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+        <div className="max-w-3xl mx-auto bg-bg-card border border-border-medium rounded-3xl p-6 md:p-8 shadow-2xl">
           <button 
             onClick={() => {
               setCurrentView('dashboard');
               setSelectedLahan(null);
             }}
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-6"
+            className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-main mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Kembali ke Dashboard</span>
           </button>
 
-          <h2 className="text-2xl font-bold text-white mb-1">Cek Kelayakan Lahan Tanam</h2>
-          <p className="text-sm text-gray-400 mb-6">
-            Menilai kesesuaian lahan <strong className="text-white">{selectedLahan.nama}</strong> berdasarkan parameter geospasial tanah dan iklim.
+          <h2 className="text-2xl font-bold text-text-main mb-1">Cek Kelayakan Lahan Tanam</h2>
+          <p className="text-sm text-text-muted mb-6">
+            Menilai kesesuaian lahan <strong className="text-text-main">{selectedLahan.nama}</strong> berdasarkan parameter geospasial tanah dan iklim.
             {liveWeather && <span className="block mt-1 text-primary-light flex items-center gap-1"><CloudRain className="w-3.5 h-3.5" /> Terhubung dengan data cuaca live ({liveWeather.suhu}°C, {liveWeather.curahHujan} mm/bln)</span>}
           </p>
 
           {/* Pilihan Jenis Tanaman */}
-          <div className="mb-8 bg-bg-dark border border-white/10 rounded-2xl p-5">
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pilih Komoditas Tanaman</label>
+          <div className="mb-8 bg-bg-dark border border-border-medium rounded-2xl p-5">
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Pilih Komoditas Tanaman</label>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {TANAMAN_DATABASE.map(crop => (
                 <button
@@ -552,7 +723,7 @@ export default function DashboardPage() {
                   className={`py-3 px-2 rounded-xl border text-center transition-all ${
                     selectedCropId === crop.id
                       ? 'border-primary bg-primary/10 text-primary-light font-bold'
-                      : 'border-white/10 hover:bg-white/5 text-gray-400'
+                      : 'border-border-medium hover:bg-border-light text-text-muted'
                   }`}
                 >
                   <span className="block text-sm">{crop.nama}</span>
@@ -563,7 +734,7 @@ export default function DashboardPage() {
 
           {/* HASIL ANALISIS KELAYAKAN */}
           <div className="space-y-6">
-            <div className="flex items-start gap-4 p-5 rounded-2xl border bg-bg-dark border-white/5">
+            <div className="flex items-start gap-4 p-5 rounded-2xl border bg-bg-dark border-border-light">
               <div className="mt-1">
                 {evalResult.layak ? (
                   <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
@@ -577,7 +748,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex-grow">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-lg text-white">
+                  <h3 className="font-bold text-lg text-text-main">
                     {evalResult.layak ? 'Lahan Layak Ditanami' : 'Lahan Kurang Layak'}
                   </h3>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -590,12 +761,12 @@ export default function DashboardPage() {
                 {evalResult.kendala.length > 0 ? (
                   <div className="mt-3 space-y-2">
                     <span className="text-xs font-semibold text-red-400 block uppercase tracking-wider">Deteksi Kendala:</span>
-                    <ul className="list-disc pl-5 text-sm text-gray-400 space-y-1">
+                    <ul className="list-disc pl-5 text-sm text-text-muted space-y-1">
                       {evalResult.kendala.map((k, i) => <li key={`k-${i}`}>{k}</li>)}
                     </ul>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">Selamat! Parameter lingkungan (suhu, curah hujan, ketinggian, dan tipe tanah) terdeteksi sangat cocok dengan kebutuhan varietas tanaman ini.</p>
+                  <p className="text-sm text-text-muted">Selamat! Parameter lingkungan (suhu, curah hujan, ketinggian, dan tipe tanah) terdeteksi sangat cocok dengan kebutuhan varietas tanaman ini.</p>
                 )}
               </div>
             </div>
@@ -603,12 +774,12 @@ export default function DashboardPage() {
             {/* Jika LAYAK: Tampilkan Kalender Kerja / Estimasi */}
             {evalResult.layak && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-2xl bg-bg-dark border border-white/5 space-y-4">
-                  <h4 className="font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
+                <div className="p-5 rounded-2xl bg-bg-dark border border-border-light space-y-4">
+                  <h4 className="font-bold text-text-main flex items-center gap-2 border-b border-border-light pb-2">
                     <Calendar className="w-4.5 h-4.5 text-primary-light" />
                     <span>Rencana Perawatan</span>
                   </h4>
-                  <ul className="text-xs text-gray-400 space-y-3">
+                  <ul className="text-xs text-text-muted space-y-3">
                     {evalResult.siklusPemupukan.map((step, i) => (
                       <li key={`s-${i}`} className="flex items-start gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5"></span>
@@ -618,23 +789,23 @@ export default function DashboardPage() {
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-bg-dark border border-white/5 space-y-3">
-                  <h4 className="font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2">
+                <div className="p-5 rounded-2xl bg-bg-dark border border-border-light space-y-3">
+                  <h4 className="font-bold text-text-main flex items-center gap-2 border-b border-border-light pb-2">
                     <Droplet className="w-4.5 h-4.5 text-primary-light" />
                     <span>Kebutuhan Sumber Daya</span>
                   </h4>
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <span className="text-gray-500 block mb-0.5">Estimasi Air</span>
-                      <strong className="text-white text-sm">{(evalResult.kebutuhanAirDaily * selectedLahan.luas).toLocaleString('id-ID')} Liter/Hari</strong>
+                      <span className="text-text-muted block mb-0.5">Estimasi Air</span>
+                      <strong className="text-text-main text-sm">{(evalResult.kebutuhanAirDaily * selectedLahan.luas).toLocaleString('id-ID')} Liter/Hari</strong>
                       <span className="text-gray-600 block mt-0.5">({evalResult.kebutuhanAirDaily}L / m²)</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block mb-0.5">Siklus Panen</span>
-                      <strong className="text-white text-sm">{TANAMAN_DATABASE.find(t => t.id === selectedCropId)?.siklusTanamDays} Hari</strong>
+                      <span className="text-text-muted block mb-0.5">Siklus Panen</span>
+                      <strong className="text-text-main text-sm">{TANAMAN_DATABASE.find(t => t.id === selectedCropId)?.siklusTanamDays} Hari</strong>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed border-t border-white/5 pt-2 mt-2">
+                  <p className="text-xs text-text-muted leading-relaxed border-t border-border-light pt-2 mt-2">
                     {evalResult.saranMitigasi}
                   </p>
                 </div>
@@ -643,28 +814,28 @@ export default function DashboardPage() {
 
             {/* OPSI MITIGASI / KEPUTUSAN JIKA TIDAK LAYAK */}
             {!evalResult.layak && (
-              <div className="space-y-4 border-t border-white/5 pt-6">
+              <div className="space-y-4 border-t border-border-light pt-6">
                 <div className="p-4 rounded-xl bg-orange-600/10 border border-orange-500/20 text-xs text-orange-400 leading-relaxed">
                   <strong>Analisis Mitigasi:</strong> Meskipun lahan kurang layak, Anda tetap dapat memaksakan penanaman dengan menerapkan langkah mitigasi khusus. Atau, cari komoditas alternatif yang lebih menguntungkan untuk wilayah ini.
                 </div>
 
-                <div className="p-5 rounded-2xl bg-bg-dark border border-white/5">
-                  <h4 className="font-bold text-white mb-3 text-sm flex items-center gap-2">
+                <div className="p-5 rounded-2xl bg-bg-dark border border-border-light">
+                  <h4 className="font-bold text-text-main mb-3 text-sm flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-primary" />
                     <span>Rekomendasi Tanaman Alternatif Terdekat</span>
                   </h4>
                   <div className="space-y-2">
                     {alternatifList.filter(a => a.tanaman.id !== selectedCropId).slice(0, 2).map((alt) => (
-                      <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl text-xs">
+                      <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-border-light border border-border-light rounded-xl text-xs">
                         <div>
-                          <strong className="text-white text-sm block">{alt.tanaman.nama}</strong>
-                          <span className="text-gray-500">Estimasi panen: {alt.tanaman.siklusTanamDays} hari</span>
+                          <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
+                          <span className="text-text-muted">Estimasi panen: {alt.tanaman.siklusTanamDays} hari</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <span className="text-emerald-400 font-bold">Kecocokan: {alt.evaluasi.skor}%</span>
                           <button
                             onClick={() => setSelectedCropId(alt.tanaman.id)}
-                            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-1.5 px-3 rounded-lg"
+                            className="bg-border-medium hover:bg-white/20 text-text-main font-semibold py-1.5 px-3 rounded-lg"
                           >
                             Pilih
                           </button>
@@ -677,13 +848,13 @@ export default function DashboardPage() {
             )}
 
             {/* ACTIONS */}
-            <div className="flex gap-4 border-t border-white/5 pt-6 mt-8">
+            <div className="flex gap-4 border-t border-border-light pt-6 mt-8">
               <button 
                 onClick={() => {
                   setCurrentView('dashboard');
                   setSelectedLahan(null);
                 }}
-                className="flex-1 py-3.5 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 font-bold text-sm transition-all text-center"
+                className="flex-1 py-3.5 px-4 rounded-xl border border-border-medium hover:bg-border-light text-text-muted font-bold text-sm transition-all text-center"
               >
                 Batalkan
               </button>
@@ -692,8 +863,8 @@ export default function DashboardPage() {
                 onClick={() => handleConfirmTanam(selectedCropId, evalResult.saranMitigasi)}
                 className={`flex-1 py-3.5 px-4 rounded-xl font-bold text-sm transition-all text-center ${
                   evalResult.layak 
-                    ? 'bg-primary hover:bg-emerald-600 text-white shadow-lg shadow-primary/20' 
-                    : 'bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/20'
+                    ? 'bg-primary hover:bg-emerald-600 text-text-main shadow-lg shadow-primary/20' 
+                    : 'bg-orange-600 hover:bg-orange-700 text-text-main shadow-lg shadow-orange-600/20'
                 }`}
               >
                 {evalResult.layak ? 'Konfirmasi Tanam' : 'Paksa Tanam (Gunakan Mitigasi)'}
@@ -715,24 +886,24 @@ export default function DashboardPage() {
 
     return (
       <div className="min-h-screen bg-bg-dark py-8 px-4">
-        <div className="max-w-3xl mx-auto bg-bg-card border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+        <div className="max-w-3xl mx-auto bg-bg-card border border-border-medium rounded-3xl p-6 md:p-8 shadow-2xl">
           
           <button 
             onClick={() => {
               setCurrentView('dashboard');
               setSelectedLahan(null);
             }}
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-6"
+            className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-main mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Kembali ke Dashboard</span>
           </button>
 
-          <div className="flex justify-between items-start mb-4 border-b border-white/5 pb-4">
+          <div className="flex justify-between items-start mb-4 border-b border-border-light pb-4">
             <div>
               <span className="text-xs bg-primary-dark/30 text-primary-light font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Sedang Ditanam</span>
-              <h2 className="text-2xl font-bold text-white mt-2">{selectedLahan.nama}</h2>
-              <p className="text-sm text-gray-400 mt-1">Varietas: <strong className="text-white">{selectedLahan.varietasDitanam}</strong></p>
+              <h2 className="text-2xl font-bold text-text-main mt-2">{selectedLahan.nama}</h2>
+              <p className="text-sm text-text-muted mt-1">Varietas: <strong className="text-text-main">{selectedLahan.varietasDitanam}</strong></p>
             </div>
             {isExtremeWeather && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-full px-3 py-1 flex items-center gap-1.5 text-xs font-bold">
@@ -744,25 +915,27 @@ export default function DashboardPage() {
 
           {/* DETEKSI GEOSPATIAL & CUACA REAL-TIME */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-bg-dark p-4 rounded-xl border border-white/5">
-              <span className="text-gray-500 text-xs block mb-1">Status Sensor Kelembapan</span>
+            <div className="bg-bg-dark p-4 rounded-xl border border-border-light">
+              <span className="text-text-muted text-xs block mb-1">Status Sensor Kelembapan</span>
               <div className="flex items-center gap-2">
                 <Droplet className="w-4.5 h-4.5 text-primary-light" />
-                <strong className="text-white text-base">78% (Kelembapan Optimal)</strong>
+                <strong className="text-text-main text-base">78% (Kelembapan Optimal)</strong>
               </div>
             </div>
-            <div className="bg-bg-dark p-4 rounded-xl border border-white/5">
-              <span className="text-gray-500 text-xs block mb-1">Cuaca Hari Ini</span>
+            <div className="bg-bg-dark p-4 rounded-xl border border-border-light">
+              <span className="text-text-muted text-xs block mb-1">Cuaca Hari Ini</span>
               <div className="flex items-center gap-2">
                 <CloudRain className="w-4.5 h-4.5 text-blue-400" />
-                <strong className="text-white text-base">Hujan Ringan (24°C)</strong>
+                <strong className="text-text-main text-base">
+                  {liveWeather ? `${liveWeather.weatherDesc} (${liveWeather.currentTemp}°C)` : 'Memuat...'}
+                </strong>
               </div>
             </div>
-            <div className="bg-bg-dark p-4 rounded-xl border border-white/5">
-              <span className="text-gray-500 text-xs block mb-1">Estimasi Tanggal Panen</span>
+            <div className="bg-bg-dark p-4 rounded-xl border border-border-light">
+              <span className="text-text-muted text-xs block mb-1">Estimasi Tanggal Panen</span>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4.5 h-4.5 text-orange-400" />
-                <strong className="text-white text-base">{selectedLahan.estimasiPanenDate}</strong>
+                <strong className="text-text-main text-base">{selectedLahan.estimasiPanenDate}</strong>
               </div>
             </div>
           </div>
@@ -774,7 +947,7 @@ export default function DashboardPage() {
                 <AlertTriangle className="w-4.5 h-4.5" />
                 <span>Sistem Peringatan Dini (Early Warning)</span>
               </h4>
-              <p className="text-xs text-gray-300 leading-relaxed">
+              <p className="text-xs text-text-muted leading-relaxed">
                 Peta satelit mendeteksi adanya curah hujan ekstrim ({selectedLahan.curahHujan} mm/bln) di ketinggian lereng pegunungan ({selectedLahan.ketinggian} mdpl). Hal ini meningkatkan kelembapan tanah drastis dan memicu potensi busuk akar serta serangan wereng.
               </p>
               <div className="text-xs text-red-300 font-semibold">
@@ -792,7 +965,7 @@ export default function DashboardPage() {
                 <CheckCircle2 className="w-4.5 h-4.5" />
                 <span>Kondisi Lahan Terpantau Sehat</span>
               </h4>
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-text-muted leading-relaxed">
                 Kondisi curah hujan ({selectedLahan.curahHujan} mm/bln) dan suhu ({selectedLahan.suhu}°C) berada di dalam batas normal. Rekomendasi penyiraman harian: {(selectedLahan.kebutuhanAirDaily || 5) * selectedLahan.luas} liter dialirkan pada pagi hari.
               </p>
             </div>
@@ -800,49 +973,42 @@ export default function DashboardPage() {
 
           {/* CATATAN MITIGASI SAAT CHECK SUITABILITY */}
           {selectedLahan.catatanMitigasi && (
-            <div className="bg-bg-dark border border-white/5 rounded-2xl p-5 mb-6">
-              <h4 className="font-bold text-white mb-2 text-xs uppercase tracking-wider text-gray-400">Instruksi Budidaya & Mitigasi Tanam</h4>
-              <p className="text-xs text-gray-400 whitespace-pre-line leading-relaxed">{selectedLahan.catatanMitigasi}</p>
+            <div className="bg-bg-dark border border-border-light rounded-2xl p-5 mb-6">
+              <h4 className="font-bold text-text-main mb-2 text-xs uppercase tracking-wider text-text-muted">Instruksi Budidaya & Mitigasi Tanam</h4>
+              <p className="text-xs text-text-muted whitespace-pre-line leading-relaxed">{selectedLahan.catatanMitigasi}</p>
             </div>
           )}
 
-          {/* SIMULASI LAPORAN WARGA SEKITAR (CROWDSOURCED) */}
-          <div className="bg-bg-dark border border-white/5 rounded-2xl p-5 mb-8">
-            <h4 className="font-bold text-white mb-3 text-xs uppercase tracking-wider text-gray-400">Laporan Lahan Tetangga Terdekat</h4>
-            <div className="space-y-3 text-xs">
-              <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between">
-                <div>
-                  <strong className="text-white block">Pak Joko - Sawah Timur (200m)</strong>
-                  <span className="text-gray-500">Mendeteksi kemunculan belalang sangit kecil di daun bawah.</span>
-                </div>
-                <span className="text-orange-400 font-semibold self-center">Waspada</span>
-              </div>
-              <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between">
-                <div>
-                  <strong className="text-white block">Bu Yanti - Sawah Kidul (500m)</strong>
-                  <span className="text-gray-500">Saluran irigasi primer tersumbat sampah pohon tumbang kemarin sore.</span>
-                </div>
-                <span className="text-red-400 font-semibold self-center">Tersumbat</span>
-              </div>
-            </div>
-          </div>
+
 
           {/* ACTIONS */}
-          <div className="flex gap-4 border-t border-white/5 pt-6">
+          <div className="flex gap-4 border-t border-border-light pt-6">
             <button 
               onClick={() => {
                 setCurrentView('dashboard');
                 setSelectedLahan(null);
               }}
-              className="flex-1 py-3.5 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 font-bold text-sm transition-all text-center"
+              className="flex-1 py-3.5 px-4 rounded-xl border border-border-medium hover:bg-border-light text-text-muted font-bold text-sm transition-all text-center"
             >
               Kembali
             </button>
 
-            {/* Simpan Panen (Bisa dipanen kapan saja untuk testing flow, idealnya setelah siklus selesai) */}
             <button 
-              onClick={() => setCurrentView('panen')}
-              className="flex-1 py-3.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm transition-all text-center shadow-lg shadow-orange-600/20"
+              onClick={() => {
+                // Initialize default values for the harvest form
+                const cropData = TANAMAN_DATABASE.find(t => t.nama === selectedLahan?.varietasDitanam);
+                const hargaDef = cropData?.hargaPasar ? (cropData.hargaPasar.min + cropData.hargaPasar.max) / 2 : 7000;
+                
+                if (selectedLahan) {
+                  const potensiAvg = cropData?.potensiHasil ? (cropData.potensiHasil.min + cropData.potensiHasil.max) / 2 : 0.75;
+                  setBeratPanen(Math.round(selectedLahan.luas * potensiAvg)); // Default sukses (100%)
+                }
+                
+                setHargaJual(hargaDef);
+                setStatusHasil('sukses');
+                setCurrentView('panen');
+              }}
+              className="flex-1 py-3.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-text-main font-bold text-sm transition-all text-center shadow-lg shadow-orange-600/20"
             >
               Panen Lahan Sekarang
             </button>
@@ -860,35 +1026,50 @@ export default function DashboardPage() {
     const cropData = TANAMAN_DATABASE.find(t => t.nama === selectedLahan.varietasDitanam);
     const hargaDefault = cropData?.hargaPasar ? (cropData.hargaPasar.min + cropData.hargaPasar.max) / 2 : 7000;
     
-    const [beratPanen, setBeratPanen] = useState<number>(Math.round(selectedLahan.luas * 0.75)); // Default 0.75kg per m2
-    const [statusHasil, setStatusHasil] = useState<RiwayatPanen['statusHasil']>('sukses');
-    const [hargaJual, setHargaJual] = useState<number>(hargaDefault);
+    // Default values are now set in the onClick handler when entering this view.
 
     return (
       <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center px-4">
-        <div className="w-full max-w-md bg-bg-card border border-white/10 rounded-3xl p-8 shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-2">Catat Hasil Panen</h2>
-          <p className="text-sm text-gray-400 mb-6">
-            Masukkan total kuantitas panen dari lahan <strong className="text-white">{selectedLahan.nama}</strong> untuk komoditas <strong className="text-white">{selectedLahan.varietasDitanam}</strong>.
+        <div className="w-full max-w-md bg-bg-card border border-border-medium rounded-3xl p-8 shadow-2xl">
+          <h2 className="text-xl font-bold text-text-main mb-2">Catat Hasil Panen</h2>
+          <p className="text-sm text-text-muted mb-6">
+            Masukkan total kuantitas panen dari lahan <strong className="text-text-main">{selectedLahan.nama}</strong> untuk komoditas <strong className="text-text-main">{selectedLahan.varietasDitanam}</strong>.
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Berat Bersih Hasil Panen (Kg)</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Berat Bersih Hasil Panen (Kg)</label>
               <input 
                 type="number" 
                 value={beratPanen}
-                onChange={(e) => setBeratPanen(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm font-bold"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') setBeratPanen('');
+                  else setBeratPanen(Math.max(0, parseInt(val) || 0));
+                }}
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Kualitas Panen</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Kualitas Panen</label>
               <select 
                 value={statusHasil}
-                onChange={(e) => setStatusHasil(e.target.value as RiwayatPanen['statusHasil'])}
-                className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                onChange={(e) => {
+                  const newStatus = e.target.value as RiwayatPanen['statusHasil'];
+                  setStatusHasil(newStatus);
+                  
+                  // Auto recalculate berat panen based on status (Smart feature)
+                  const cropData = TANAMAN_DATABASE.find(t => t.nama === selectedLahan.varietasDitanam);
+                  const potensiAvg = cropData?.potensiHasil ? (cropData.potensiHasil.min + cropData.potensiHasil.max) / 2 : 0.75;
+                  
+                  let multiplier = 1;
+                  if (newStatus === 'sebagian') multiplier = 0.5; // 50% yield
+                  if (newStatus === 'gagal') multiplier = 0.1; // 10% yield
+                  
+                  setBeratPanen(Math.round(selectedLahan.luas * potensiAvg * multiplier));
+                }}
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
               >
                 <option value="sukses">Sukses (Panen Melimpah & Bagus)</option>
                 <option value="sebagian">Sebagian (Ada Kerusakan Hama/Cuaca)</option>
@@ -897,15 +1078,19 @@ export default function DashboardPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Harga Jual Aktual per Kg (Rp)</label>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Harga Jual Aktual per Kg (Rp)</label>
               <input 
                 type="number" 
                 value={hargaJual}
-                onChange={(e) => setHargaJual(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm font-bold"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') setHargaJual('');
+                  else setHargaJual(Math.max(0, parseInt(val) || 0));
+                }}
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm font-bold"
               />
               {cropData?.hargaPasar && (
-                <p className="text-[10px] text-gray-500 mt-1.5">
+                <p className="text-[10px] text-text-muted mt-1.5">
                   Info rentang harga pasar: Rp {cropData.hargaPasar.min.toLocaleString('id-ID')} - Rp {cropData.hargaPasar.max.toLocaleString('id-ID')} / kg
                 </p>
               )}
@@ -914,18 +1099,97 @@ export default function DashboardPage() {
             <div className="flex gap-3 pt-4">
               <button 
                 onClick={() => setCurrentView('monitoring')}
-                className="flex-1 py-3 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 font-semibold text-sm transition-all"
+                className="flex-1 py-3 px-4 rounded-xl border border-border-medium hover:bg-border-light text-text-muted font-semibold text-sm transition-all"
               >
                 Batal
               </button>
               <button 
                 onClick={() => handleSimpanPanen(beratPanen, statusHasil, hargaJual)}
-                className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-emerald-600 text-white font-bold text-sm transition-all shadow-lg shadow-primary/20"
+                className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-emerald-600 text-text-main font-bold text-sm transition-all shadow-lg shadow-primary/20"
               >
                 Simpan Riwayat
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================================================
+  // VIEW: PROFILE & SETTINGS
+  // ==========================================================================
+  if (currentView === 'profile') {
+    return (
+      <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center px-4">
+        <div className="w-full max-w-md bg-bg-card border border-border-light rounded-3xl p-8 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <Settings className="w-6 h-6 text-primary-light" />
+            <h2 className="text-xl font-bold text-text-main">Pengaturan Profil</h2>
+          </div>
+          
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Nama Lengkap</label>
+              <input 
+                type="text" 
+                value={petaniName}
+                onChange={(e) => setPetaniName(e.target.value)}
+                required
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm font-bold"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Komoditas Fokus</label>
+              <input 
+                type="text" 
+                value={petaniKomoditas}
+                onChange={(e) => setPetaniKomoditas(e.target.value)}
+                className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
+                placeholder="Misal: Padi, Jagung..."
+              />
+            </div>
+            
+            <div className="pt-4 pb-2 border-t border-border-light mt-6">
+              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Pengaturan Tema</label>
+              <div className="flex gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${theme === 'light' ? 'bg-primary/10 border-primary text-primary-dark font-bold' : 'border-border-medium text-text-muted hover:bg-border-light'}`}
+                >
+                  <Sun className="w-4 h-4" />
+                  <span>Terang</span>
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${theme === 'dark' ? 'bg-primary/10 border-primary text-primary-light font-bold' : 'border-border-medium text-text-muted hover:bg-border-light'}`}
+                >
+                  <Moon className="w-4 h-4" />
+                  <span>Gelap</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-6">
+              <button 
+                type="button"
+                onClick={() => setCurrentView('dashboard')}
+                className="flex-1 py-3 px-4 rounded-xl border border-border-medium hover:bg-border-light text-text-muted font-semibold text-sm transition-all"
+              >
+                Batal
+              </button>
+              <button 
+                type="submit"
+                disabled={dataLoading}
+                className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm transition-all shadow-lg shadow-primary/20"
+              >
+                {dataLoading ? 'Menyimpan...' : 'Simpan Profil'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -950,6 +1214,15 @@ export default function DashboardPage() {
               <User className="w-3.5 h-3.5 text-primary" />
               <span>{petaniName} {petaniKomoditas && `| ${petaniKomoditas}`}</span>
             </div>
+            
+            <button 
+              onClick={() => setCurrentView('profile')}
+              className="p-1.5 text-gray-500 hover:text-primary transition-colors bg-gray-50 hover:bg-gray-100 rounded-full"
+              title="Pengaturan Profil"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
             <button 
               onClick={handleLogout}
               className="flex items-center gap-1 text-red-600 hover:text-red-700 font-semibold text-xs border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full transition-all"
@@ -966,47 +1239,47 @@ export default function DashboardPage() {
         
         {/* Summary Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-          <div className="bg-bg-card border border-white/5 p-5 rounded-2xl flex items-center gap-4">
+          <div className="bg-bg-card border border-border-light p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 bg-primary/10 text-primary-light rounded-xl border border-primary/20">
               <Map className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xs text-gray-500 block mb-0.5">Jumlah Lahan</span>
-              <strong className="text-xl text-white block">{lahans.length} Bidang</strong>
+              <span className="text-xs text-text-muted block mb-0.5">Jumlah Lahan</span>
+              <strong className="text-xl text-text-main block">{lahans.length} Bidang</strong>
             </div>
           </div>
 
-          <div className="bg-bg-card border border-white/5 p-5 rounded-2xl flex items-center gap-4">
+          <div className="bg-bg-card border border-border-light p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 bg-primary/10 text-primary-light rounded-xl border border-primary/20">
               <Activity className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xs text-gray-500 block mb-0.5">Total Luas Lahan</span>
-              <strong className="text-xl text-white block">
+              <span className="text-xs text-text-muted block mb-0.5">Total Luas Lahan</span>
+              <strong className="text-xl text-text-main block">
                 {lahans.reduce((sum, l) => sum + l.luas, 0).toLocaleString('id-ID')} m²
               </strong>
             </div>
           </div>
 
-          <div className="bg-bg-card border border-white/5 p-5 rounded-2xl flex items-center gap-4">
+          <div className="bg-bg-card border border-border-light p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 bg-primary/10 text-primary-light rounded-xl border border-primary/20">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xs text-gray-500 block mb-0.5">Panen Sukses</span>
-              <strong className="text-xl text-white block">
+              <span className="text-xs text-text-muted block mb-0.5">Panen Sukses</span>
+              <strong className="text-xl text-text-main block">
                 {panens.filter(p => p.statusHasil === 'sukses').length} Kali
               </strong>
             </div>
           </div>
 
-          <div className="bg-bg-card border border-white/5 p-5 rounded-2xl flex items-center gap-4">
+          <div className="bg-bg-card border border-border-light p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xs text-gray-500 block mb-0.5">Peringatan Aktif</span>
-              <strong className="text-xl text-white block">{activeAlerts.length} Bahaya</strong>
+              <span className="text-xs text-text-muted block mb-0.5">Peringatan Aktif</span>
+              <strong className="text-xl text-text-main block">{activeAlerts.length} Bahaya</strong>
             </div>
           </div>
         </div>
@@ -1016,8 +1289,8 @@ export default function DashboardPage() {
           <div className="bg-red-600/15 border border-red-500/20 rounded-2xl p-5 mb-8 flex items-start gap-4">
             <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-white text-sm">Peringatan Dini Cuaca Ekstrem Terdeteksi</h3>
-              <p className="text-xs text-gray-400 leading-relaxed mt-1">
+              <h3 className="font-bold text-text-main text-sm">Peringatan Dini Cuaca Ekstrem Terdeteksi</h3>
+              <p className="text-xs text-text-muted leading-relaxed mt-1">
                 Kami mendeteksi <strong>{activeAlerts.length} Lahan Anda</strong> berada di dataran tinggi dengan curah hujan melebihi batas toleransi. Silakan klik tombol "Pantau Lahan" di lahan yang bersangkutan untuk mendapatkan rincian panduan mitigasi bencana pertanian.
               </p>
             </div>
@@ -1025,12 +1298,12 @@ export default function DashboardPage() {
         )}
 
         {/* TABS (Lahan Sawah vs Riwayat Panen) */}
-        <div className="border-b border-white/10 flex items-center justify-between mb-6">
+        <div className="border-b border-border-medium flex items-center justify-between mb-6">
           <div className="flex gap-6 overflow-x-auto no-scrollbar pb-1">
             <button 
               onClick={() => setActiveTab('lahan')}
               className={`py-3 text-sm font-bold relative transition-all whitespace-nowrap ${
-                activeTab === 'lahan' ? 'text-primary-light' : 'text-gray-400 hover:text-white'
+                activeTab === 'lahan' ? 'text-primary-light' : 'text-text-muted hover:text-text-main'
               }`}
             >
               <span>Daftar Lahan Sawah</span>
@@ -1039,7 +1312,7 @@ export default function DashboardPage() {
             <button 
               onClick={() => setActiveTab('kalender')}
               className={`py-3 text-sm font-bold relative transition-all whitespace-nowrap ${
-                activeTab === 'kalender' ? 'text-primary-light' : 'text-gray-400 hover:text-white'
+                activeTab === 'kalender' ? 'text-primary-light' : 'text-text-muted hover:text-text-main'
               }`}
             >
               <span>Kalender & Cuaca</span>
@@ -1048,7 +1321,7 @@ export default function DashboardPage() {
             <button 
               onClick={() => setActiveTab('panen')}
               className={`py-3 text-sm font-bold relative transition-all whitespace-nowrap ${
-                activeTab === 'panen' ? 'text-primary-light' : 'text-gray-400 hover:text-white'
+                activeTab === 'panen' ? 'text-primary-light' : 'text-text-muted hover:text-text-main'
               }`}
             >
               <span>Riwayat Hasil Panen</span>
@@ -1059,7 +1332,7 @@ export default function DashboardPage() {
           {activeTab === 'lahan' && (
             <button 
               onClick={() => setCurrentView('add-lahan')}
-              className="bg-primary hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-full text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-primary/10"
+              className="bg-primary hover:bg-emerald-600 text-text-main font-bold py-2 px-4 rounded-full text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-primary/10"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Lahan</span>
@@ -1067,9 +1340,16 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* TAB CONTENT: LAHAN ACTIVE */}
+        {/* TAB CONTENT */}
+        <AnimatePresence mode="wait">
           {activeTab === 'lahan' && (
-            <>
+            <motion.div 
+              key="lahan"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
               <EarlyWarning lahans={lahans} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {lahans.map((lahan) => {
@@ -1077,17 +1357,36 @@ export default function DashboardPage() {
               return (
                 <div 
                   key={lahan.id}
-                  className="bg-bg-card border border-white/5 rounded-2xl p-6 hover:border-primary/25 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between"
+                  className="bg-bg-card border border-border-light rounded-2xl p-6 hover:border-primary/25 hover:shadow-2xl transition-all duration-300 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-white font-bold text-base leading-tight">{lahan.nama}</h3>
-                        <span className="text-xs text-gray-500 mt-1 block">Luas: {lahan.luas.toLocaleString('id-ID')} m²</span>
+                        <h3 className="text-text-main font-bold text-base leading-tight">{lahan.nama}</h3>
+                        <span className="text-xs text-text-muted mt-1 block">Luas: {lahan.luas.toLocaleString('id-ID')} m²</span>
                       </div>
                       
                       {lahan.status === 'kosong' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-wider">Kosong</span>
+                        <div className="flex gap-2 items-center">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-wider">Kosong</span>
+                          <button 
+                            onClick={() => {
+                              setSelectedLahan(lahan);
+                              setCurrentView('edit-lahan');
+                            }}
+                            className="p-1 hover:bg-border-medium text-text-muted hover:text-text-main rounded transition-colors"
+                            title="Edit Lahan"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteLahan(lahan.id)}
+                            className="p-1 hover:bg-red-500/20 text-text-muted hover:text-red-400 rounded transition-colors"
+                            title="Hapus Lahan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       ) : lahan.status === 'sedang-ditanam' ? (
                         <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase tracking-wider">Ditanami</span>
                       ) : (
@@ -1096,34 +1395,34 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Sensor parameters */}
-                    <div className="grid grid-cols-2 gap-2 bg-bg-dark/50 border border-white/5 rounded-xl p-3 text-xs mb-4">
+                    <div className="grid grid-cols-2 gap-2 bg-bg-dark/50 border border-border-light rounded-xl p-3 text-xs mb-4">
                       <div>
-                        <span className="text-gray-500 block mb-0.5">Ketinggian Lahan</span>
-                        <strong className="text-white">{lahan.ketinggian} mdpl</strong>
+                        <span className="text-text-muted block mb-0.5">Ketinggian Lahan</span>
+                        <strong className="text-text-main">{lahan.ketinggian} mdpl</strong>
                       </div>
                       <div>
-                        <span className="text-gray-500 block mb-0.5">Suhu Tanah/Udara</span>
-                        <strong className="text-white">{lahan.suhu} °C</strong>
+                        <span className="text-text-muted block mb-0.5">Suhu Tanah/Udara</span>
+                        <strong className="text-text-main">{lahan.suhu} °C</strong>
                       </div>
                       <div className="mt-1">
-                        <span className="text-gray-500 block mb-0.5">Curah Hujan</span>
-                        <strong className="text-white">{lahan.curahHujan} mm/bln</strong>
+                        <span className="text-text-muted block mb-0.5">Curah Hujan</span>
+                        <strong className="text-text-main">{lahan.curahHujan} mm/bln</strong>
                       </div>
                       <div className="mt-1">
-                        <span className="text-gray-500 block mb-0.5">Jenis Tanah</span>
-                        <strong className="text-white">{lahan.jenisTanah}</strong>
+                        <span className="text-text-muted block mb-0.5">Jenis Tanah</span>
+                        <strong className="text-text-main">{lahan.jenisTanah}</strong>
                       </div>
                     </div>
 
                     {/* Plant Status detail */}
                     {lahan.status !== 'kosong' && (
-                      <div className="border-t border-white/5 pt-3 mb-4 text-xs space-y-2">
+                      <div className="border-t border-border-light pt-3 mb-4 text-xs space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Tanaman:</span>
-                          <strong className="text-white">{lahan.varietasDitanam}</strong>
+                          <span className="text-text-muted">Tanaman:</span>
+                          <strong className="text-text-main">{lahan.varietasDitanam}</strong>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Estimasi Panen:</span>
+                          <span className="text-text-muted">Estimasi Panen:</span>
                           <strong className="text-orange-400">{lahan.estimasiPanenDate}</strong>
                         </div>
                         {isExtreme && (
@@ -1137,14 +1436,14 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Actions by Status */}
-                  <div className="flex gap-2 border-t border-white/5 pt-4 mt-auto">
+                  <div className="flex gap-2 border-t border-border-light pt-4 mt-auto">
                     {lahan.status === 'kosong' ? (
                       <button 
                         onClick={() => {
                           setSelectedLahan(lahan);
                           setCurrentView('suitability');
                         }}
-                        className="w-full bg-primary hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
+                        className="w-full bg-primary hover:bg-emerald-600 text-text-main font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
                       >
                         <Sprout className="w-3.5 h-3.5" />
                         <span>Mulai Tanam (Cek Kelayakan)</span>
@@ -1156,7 +1455,7 @@ export default function DashboardPage() {
                             setSelectedLahan(lahan);
                             setCurrentView('monitoring');
                           }}
-                          className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1"
+                          className="flex-1 bg-border-medium hover:bg-white/20 text-text-main font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1"
                         >
                           <Activity className="w-3.5 h-3.5" />
                           <span>Pantau Lahan</span>
@@ -1165,7 +1464,7 @@ export default function DashboardPage() {
                         {lahan.status === 'sedang-ditanam' && (
                           <button 
                             onClick={() => handleUpdateStatusTanam(lahan.id, 'siap-panen')}
-                            className="px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center"
+                            className="px-3 bg-amber-500 hover:bg-amber-600 text-text-main font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center"
                             title="Tandai Siap Panen"
                           >
                             Siap Panen
@@ -1180,15 +1479,15 @@ export default function DashboardPage() {
             })}
 
             {lahans.length === 0 && (
-              <div className="col-span-full bg-bg-card border border-white/5 rounded-2xl p-12 text-center">
+              <div className="col-span-full bg-bg-card border border-border-light rounded-2xl p-12 text-center">
                 <Map className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-white font-bold text-lg mb-1">Belum Ada Lahan</h3>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto mb-6">
+                <h3 className="text-text-main font-bold text-lg mb-1">Belum Ada Lahan</h3>
+                <p className="text-xs text-text-muted max-w-sm mx-auto mb-6">
                   Tandai wilayah persawahan Anda sekarang untuk mendeteksi data geospasial serta memantau kesehatan tanaman secara berkala.
                 </p>
                 <button 
                   onClick={() => setCurrentView('add-lahan')}
-                  className="bg-primary hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-full text-xs transition-all inline-flex items-center gap-1.5"
+                  className="bg-primary hover:bg-emerald-600 text-text-main font-bold py-2.5 px-6 rounded-full text-xs transition-all inline-flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Gambar Lahan Pertama</span>
@@ -1196,18 +1495,25 @@ export default function DashboardPage() {
               </div>
             )}
             </div>
-            </>
+            </motion.div>
           )}
 
         {/* TAB CONTENT: HARVEST HISTORY */}
         {activeTab === 'panen' && (
-          <div className="space-y-6">
+          <motion.div 
+            key="panen"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
             {/* Chart Area */}
             {panens.length > 0 && (
-              <div className="bg-bg-card border border-white/5 rounded-2xl p-6 h-72">
-                <h3 className="text-white font-bold mb-4 text-sm">Grafik Pendapatan Panen</h3>
+              <div className="bg-bg-card border border-border-light rounded-2xl p-6 h-72">
+                <h3 className="text-text-main font-bold mb-4 text-sm">Grafik Pendapatan Panen</h3>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={[...panens].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <AreaChart data={[...panens].reverse()} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorPendapatan" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
@@ -1231,7 +1537,11 @@ export default function DashboardPage() {
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(val) => `Rp${(val/1000000).toFixed(1)}Jt`}
+                      tickFormatter={(val) => {
+                        if (val >= 1000000) return `Rp ${(val/1000000).toFixed(1)} Jt`;
+                        if (val >= 1000) return `Rp ${(val/1000).toFixed(0)} Rb`;
+                        return `Rp ${val}`;
+                      }}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#141414', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
@@ -1245,25 +1555,26 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className="bg-bg-card border border-white/5 rounded-2xl p-6 overflow-x-auto">
+            <div className="bg-bg-card border border-border-light rounded-2xl p-6 overflow-x-auto">
               {panens.length > 0 ? (
                 <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10 text-gray-500">
+                  <tr className="border-b border-border-medium text-text-muted">
                     <th className="pb-3 font-semibold uppercase tracking-wider">Lahan</th>
                     <th className="pb-3 font-semibold uppercase tracking-wider">Komoditas</th>
                     <th className="pb-3 font-semibold uppercase tracking-wider">Tanggal</th>
                     <th className="pb-3 font-semibold uppercase tracking-wider">Kualitas</th>
                     <th className="pb-3 font-semibold uppercase tracking-wider">Berat Bersih</th>
                     <th className="pb-3 font-semibold uppercase tracking-wider text-right">Estimasi Nilai</th>
+                    <th className="pb-3 font-semibold uppercase tracking-wider text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {panens.map((p) => (
-                    <tr key={p.id} className="text-white hover:bg-white/[0.01] transition-colors">
+                    <tr key={p.id} className="text-text-main hover:bg-white/[0.01] transition-colors">
                       <td className="py-4.5 font-medium">{p.namaLahan}</td>
                       <td className="py-4.5">{p.varietas}</td>
-                      <td className="py-4.5 text-gray-400">{p.tanggalPanen}</td>
+                      <td className="py-4.5 text-text-muted">{p.tanggalPanen}</td>
                       <td className="py-4.5">
                         {p.statusHasil === 'sukses' ? (
                           <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase text-[9px]">Melimpah</span>
@@ -1277,6 +1588,15 @@ export default function DashboardPage() {
                       <td className="py-4.5 text-right font-extrabold text-primary-light">
                         Rp {p.pendapatanEstimasi.toLocaleString('id-ID')}
                       </td>
+                      <td className="py-4.5 text-right">
+                        <button
+                          onClick={() => handleDeleteRiwayat(p.id)}
+                          className="p-1.5 hover:bg-red-500/20 text-text-muted hover:text-red-400 rounded-lg transition-colors"
+                          title="Hapus Riwayat Panen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1284,25 +1604,34 @@ export default function DashboardPage() {
             ) : (
               <div className="text-center py-12">
                 <FileSpreadsheet className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-white font-bold text-lg mb-1">Riwayat Panen Kosong</h3>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                <h3 className="text-text-main font-bold text-lg mb-1">Riwayat Panen Kosong</h3>
+                <p className="text-xs text-text-muted max-w-sm mx-auto">
                   Belum ada catatan panen yang direkam. Setelah tanaman pada lahan memasuki masa panen, silakan rekam hasil panen Anda di dashboard.
                 </p>
               </div>
             )}
           </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TAB CONTENT: KALENDER & CUACA */}
         {activeTab === 'kalender' && (
-          <KalenderTanam savedLahans={lahans} />
+          <motion.div 
+            key="kalender"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <KalenderTanam savedLahans={lahans} />
+          </motion.div>
         )}
+        </AnimatePresence>
 
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-6 bg-bg-card/50 text-center text-xs text-gray-500">
+      <footer className="border-t border-border-light py-6 bg-bg-card/50 text-center text-xs text-text-muted">
         <p>&copy; 2026 EcoTani. Hak Cipta Dilindungi Undang-Undang.</p>
         <p className="mt-1">Developed by Tim EcoTani Indonesia - Universitas Dian Nuswantoro</p>
       </footer>
@@ -1310,3 +1639,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+

@@ -46,14 +46,15 @@ interface PetaLahanProps {
   onSaveLahan: (lahanData: Omit<Lahan, 'id' | 'status'>) => void;
   savedLahans: Lahan[];
   onClose: () => void;
+  initialLahan?: Lahan; // For Edit Mode
 }
 
-export default function PetaLahan({ onSaveLahan, savedLahans, onClose }: PetaLahanProps) {
-  const [points, setPoints] = useState<[number, number][]>([]);
-  const [landName, setLandName] = useState('');
-  const [soilType, setSoilType] = useState<Lahan['jenisTanah']>('Lempung');
-  const [drainage, setDrainage] = useState<Lahan['tipeDrainase']>('Baik');
-  const [pestHistory, setPestHistory] = useState<Lahan['riwayatHama']>('Tidak');
+export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLahan }: PetaLahanProps) {
+  const [points, setPoints] = useState<[number, number][]>(initialLahan?.koordinat || []);
+  const [landName, setLandName] = useState(initialLahan?.nama || '');
+  const [soilType, setSoilType] = useState<Lahan['jenisTanah']>(initialLahan?.jenisTanah || 'Lempung');
+  const [drainage, setDrainage] = useState<Lahan['tipeDrainase']>(initialLahan?.tipeDrainase || 'Baik');
+  const [pestHistory, setPestHistory] = useState<Lahan['riwayatHama']>(initialLahan?.riwayatHama || 'Tidak');
 
   // Simulated geospasial stats calculated from drawn points
   const [stats, setStats] = useState<{
@@ -61,7 +62,12 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose }: PetaLah
     curahHujan: number;
     suhu: number;
     luas: number;
-  } | null>(null);
+  } | null>(initialLahan ? {
+    ketinggian: initialLahan.ketinggian,
+    curahHujan: initialLahan.curahHujan,
+    suhu: initialLahan.suhu,
+    luas: initialLahan.luas
+  } : null);
 
   // Calculate polygon area (using simplified flat earth math for small agricultural plots)
   const calculateArea = (coords: [number, number][]) => {
@@ -168,8 +174,8 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose }: PetaLah
         </div>
 
         <MapContainer 
-          center={[-7.150, 110.140]} 
-          zoom={10} 
+          center={initialLahan ? initialLahan.centroid : [-7.150, 110.140]} 
+          zoom={initialLahan ? 15 : 10} 
           scrollWheelZoom={true}
           style={{ width: '100%', height: '100%' }}
         >
@@ -354,7 +360,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose }: PetaLah
             className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-emerald-600 disabled:bg-emerald-950/40 disabled:text-emerald-700/60 text-white font-bold text-sm transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20"
           >
             <Check className="w-4 h-4" />
-            <span>Simpan Lahan</span>
+            <span>{initialLahan ? 'Perbarui Lahan' : 'Simpan Lahan'}</span>
           </button>
         </div>
       </div>

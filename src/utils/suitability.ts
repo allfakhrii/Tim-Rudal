@@ -11,6 +11,7 @@ export const TANAMAN_DATABASE: Tanaman[] = [
     drainaseCocok: 'Baik',
     siklusTanamDays: 115,
     hargaPasar: { min: 6000, max: 8500 },
+    potensiHasil: { min: 0.5, max: 0.8 }, // 5-8 ton/ha
   },
   {
     id: 'jagung',
@@ -22,6 +23,7 @@ export const TANAMAN_DATABASE: Tanaman[] = [
     drainaseCocok: 'Baik',
     siklusTanamDays: 100,
     hargaPasar: { min: 4500, max: 6500 },
+    potensiHasil: { min: 0.5, max: 0.7 }, // 5-7 ton/ha
   },
   {
     id: 'cabai',
@@ -33,6 +35,7 @@ export const TANAMAN_DATABASE: Tanaman[] = [
     drainaseCocok: 'Baik',
     siklusTanamDays: 120,
     hargaPasar: { min: 25000, max: 55000 },
+    potensiHasil: { min: 1.0, max: 1.5 }, // 10-15 ton/ha
   },
   {
     id: 'kedelai',
@@ -44,6 +47,7 @@ export const TANAMAN_DATABASE: Tanaman[] = [
     drainaseCocok: 'Baik',
     siklusTanamDays: 85,
     hargaPasar: { min: 9000, max: 12000 },
+    potensiHasil: { min: 0.15, max: 0.25 }, // 1.5-2.5 ton/ha
   },
   {
     id: 'bawang',
@@ -55,6 +59,7 @@ export const TANAMAN_DATABASE: Tanaman[] = [
     drainaseCocok: 'Baik',
     siklusTanamDays: 70,
     hargaPasar: { min: 20000, max: 40000 },
+    potensiHasil: { min: 1.0, max: 1.2 }, // 10-12 ton/ha
   }
 ];
 

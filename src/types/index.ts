@@ -39,4 +39,5 @@ export interface Tanaman {
   drainaseCocok: string; // 'Baik'
   siklusTanamDays: number;
   hargaPasar?: { min: number; max: number }; // Harga per kg (Rupiah)
+  potensiHasil?: { min: number; max: number }; // Potensi hasil panen (kg/m²)
 }

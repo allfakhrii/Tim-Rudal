@@ -7,7 +7,7 @@ import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Lahan } from '../types';
 import { evaluasiTanggalTanam, TANAMAN_DATABASE } from '../utils/suitability';
-import { Calendar as CalendarIcon, MapPin, CloudRain, ThermometerSun, AlertTriangle, CheckCircle2, Sprout } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, CloudRain, ThermometerSun, AlertTriangle, CheckCircle2, Sprout, Cloud, Sun, CloudLightning, CloudDrizzle } from 'lucide-react';
 
 interface KalenderTanamProps {
   savedLahans: Lahan[];
@@ -20,6 +20,7 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [lahanWeathers, setLahanWeathers] = useState<Record<string, { temp: number, desc: string }>>({});
   
   const selectedLahan = savedLahans.find(l => l.id === selectedLahanId);
 
@@ -28,7 +29,52 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedLahanId(savedLahans[0].id);
     }
-  }, [savedLahans, selectedLahanId]);
+
+    // Fetch real-time weather for ALL lahans
+    const fetchAllWeather = async () => {
+      const weathers: Record<string, { temp: number, desc: string }> = {};
+      
+      await Promise.all(savedLahans.map(async (lahan) => {
+        if (!lahan.centroid) return;
+        const [lat, lng] = lahan.centroid;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=Asia%2FJakarta`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          const data = await res.json();
+          if (data && data.current) {
+            const code = data.current.weather_code;
+            let desc = 'Cerah';
+            if (code >= 1 && code <= 3) desc = 'Berawan';
+            if (code >= 45 && code <= 48) desc = 'Berkabut';
+            if (code >= 51 && code <= 67) desc = 'Hujan Ringan';
+            if (code >= 71 && code <= 77) desc = 'Salju';
+            if (code >= 80 && code <= 82) desc = 'Hujan Lebat';
+            if (code >= 95) desc = 'Badai Petir';
+            
+            weathers[lahan.id] = {
+              temp: data.current.temperature_2m,
+              desc
+            };
+          }
+        } catch (err) {
+          console.warn('Failed to fetch weather for lahan:', lahan.nama);
+          // Fallback
+          weathers[lahan.id] = { temp: lahan.suhu || 28, desc: 'Offline' };
+        }
+      }));
+      setLahanWeathers(weathers);
+    };
+
+    if (savedLahans.length > 0) {
+      fetchAllWeather();
+    }
+  }, [savedLahans]);
 
   const lat = selectedLahan?.centroid?.[0];
   const lng = selectedLahan?.centroid?.[1];
@@ -39,7 +85,15 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
       
       setLoading(true);
       try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_mean,precipitation_sum&timezone=Asia%2FJakarta&forecast_days=14`);
+        // Tambahkan timeout 3 detik agar tidak loading lama saat internet bermasalah
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_mean,precipitation_sum&timezone=Asia%2FJakarta&forecast_days=14`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
         const data = await res.json();
         
         if (data && data.daily) {
@@ -56,7 +110,29 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
           setEvaluations(evals);
         }
       } catch (error) {
-        console.error("Failed to fetch weather", error);
+        console.warn("Failed to fetch weather, using fallback data", error);
+        
+        // --- Fallback Mock Data ---
+        // Jika API gagal (misal tidak ada internet), gunakan data simulasi agar aplikasi tetap berjalan
+        const mockDays = Array.from({length: 14}).map((_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          // Format ke yyyy-MM-dd
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          
+          return {
+            date: `${yyyy}-${mm}-${dd}`,
+            temperature_2m_mean: 25 + Math.random() * 6, // Suhu random 25-31
+            precipitation_sum: Math.random() * 15 // Hujan random 0-15
+          };
+        });
+        
+        setForecast(mockDays);
+        const evals = evaluasiTanggalTanam(selectedTanaman, mockDays as any);
+        setEvaluations(evals);
+
       } finally {
         setLoading(false);
       }
@@ -87,12 +163,45 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
   const selectedEval = evaluations.find(e => e.date === selectedDateStr);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
+      
+      {/* Real-time Weather Section */}
+      <div className="bg-bg-card border border-border-medium rounded-2xl p-6">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-main">
+          <Cloud className="w-5 h-5 text-sky-400" />
+          <span>Cuaca Saat Ini di Lahan Anda</span>
+        </h3>
+        
+        {savedLahans.length === 0 ? (
+          <div className="text-text-muted text-sm italic">Belum ada data lahan tersimpan.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {savedLahans.map(lahan => {
+              const w = lahanWeathers[lahan.id];
+              return (
+                <div key={lahan.id} className="bg-bg-dark border border-border-light rounded-xl p-4 flex flex-col justify-center items-center text-center">
+                  <span className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 truncate w-full">{lahan.nama}</span>
+                  {w ? (
+                    <>
+                      <div className="text-2xl font-bold text-text-main mb-1">{w.temp}°C</div>
+                      <div className="text-xs text-primary-light bg-primary/10 px-2 py-0.5 rounded-full inline-block">{w.desc}</div>
+                    </>
+                  ) : (
+                    <div className="text-sm text-text-muted animate-pulse py-2">Memuat...</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       {/* Sidebar Controls */}
       <div className="space-y-6">
-        <div className="bg-bg-card border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+        <div className="bg-bg-card border border-border-medium rounded-2xl p-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-main">
             <MapPin className="w-5 h-5 text-primary-light" />
             <span>Pilih Lokasi Lahan</span>
           </h3>
@@ -104,11 +213,11 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Lahan Saya</label>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Lahan Saya</label>
                 <select 
                   value={selectedLahanId}
                   onChange={(e) => setSelectedLahanId(e.target.value)}
-                  className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                  className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
                 >
                   {savedLahans.map(lahan => (
                     <option key={lahan.id} value={lahan.id}>{lahan.nama} (Luas: {lahan.luas} m²)</option>
@@ -117,11 +226,11 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Rencana Tanaman</label>
+                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Rencana Tanaman</label>
                 <select 
                   value={selectedTanaman}
                   onChange={(e) => setSelectedTanaman(e.target.value)}
-                  className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all text-sm"
+                  className="w-full bg-bg-dark border border-border-medium rounded-xl px-4 py-3 text-text-main focus:outline-none focus:border-primary transition-all text-sm"
                 >
                   {TANAMAN_DATABASE.map(t => (
                     <option key={t.id} value={t.id}>{t.nama}</option>
@@ -132,23 +241,23 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
           )}
         </div>
 
-        <div className="bg-bg-card border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+        <div className="bg-bg-card border border-border-medium rounded-2xl p-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-main">
             <Sprout className="w-5 h-5 text-emerald-400" />
             <span>Keterangan Indikator</span>
           </h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
               <div className="w-4 h-4 rounded bg-emerald-500/20 border border-emerald-500/50"></div>
-              <span className="text-gray-300">Sangat Optimal untuk Tanam</span>
+              <span className="text-text-muted">Sangat Optimal untuk Tanam</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-4 h-4 rounded bg-amber-500/20 border border-amber-500/50"></div>
-              <span className="text-gray-300">Kurang Optimal (Perlu Mitigasi)</span>
+              <span className="text-text-muted">Kurang Optimal (Perlu Mitigasi)</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-4 h-4 rounded bg-red-500/20 border border-red-500/50"></div>
-              <span className="text-gray-300">Hindari (Risiko Gagal Panen)</span>
+              <span className="text-text-muted">Hindari (Risiko Gagal Panen)</span>
             </div>
           </div>
         </div>
@@ -156,7 +265,7 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
 
       {/* Main Calendar Area */}
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-bg-card border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-start relative">
+        <div className="bg-bg-card border border-border-medium rounded-2xl p-6 flex flex-col md:flex-row gap-8 items-start relative">
           
           {loading && (
              <div className="absolute inset-0 z-10 bg-bg-card/50 backdrop-blur-sm flex justify-center items-center rounded-2xl">
@@ -165,12 +274,12 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
           )}
 
           <div className="w-full md:w-auto flex-shrink-0">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white border-b border-white/5 pb-3">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-main border-b border-border-light pb-3">
               <CalendarIcon className="w-5 h-5 text-primary-light" />
               <span>Prediksi 14 Hari Kedepan</span>
             </h3>
             
-            <div className="calendar-wrapper custom-calendar bg-bg-dark p-4 rounded-xl border border-white/5 inline-block">
+            <div className="calendar-wrapper custom-calendar bg-bg-dark p-4 rounded-xl border border-border-light inline-block">
               <DayPicker 
                 mode="single"
                 selected={selectedDate}
@@ -179,25 +288,25 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
                 modifiers={modifiers}
                 modifiersClassNames={modifiersClassNames}
                 disabled={[{ before: new Date() }]}
-                className="text-white"
+                className="text-text-main"
               />
             </div>
           </div>
 
           <div className="flex-1 w-full">
-            <h3 className="text-lg font-bold mb-4 text-white border-b border-white/5 pb-3">
+            <h3 className="text-lg font-bold mb-4 text-text-main border-b border-border-light pb-3">
               Detail Tanggal
             </h3>
             
             {!selectedDate ? (
-              <div className="text-gray-400 text-sm italic">Pilih tanggal di kalender untuk melihat prediksi.</div>
+              <div className="text-text-muted text-sm italic">Pilih tanggal di kalender untuk melihat prediksi.</div>
             ) : !selectedEval ? (
-              <div className="text-gray-400 text-sm">
+              <div className="text-text-muted text-sm">
                 Tidak ada data prediksi cuaca untuk tanggal {format(selectedDate, 'dd MMMM yyyy', { locale: id })}. Silakan pilih tanggal 14 hari ke depan.
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-lg text-white font-semibold">
+                <div className="flex items-center gap-2 text-lg text-text-main font-semibold">
                   <span>{format(selectedDate, 'EEEE, dd MMMM yyyy', { locale: id })}</span>
                 </div>
                 
@@ -222,20 +331,20 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="bg-bg-dark border border-white/10 rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2">
-                      <ThermometerSun className="w-4 h-4" />
-                      <span className="text-xs uppercase font-semibold">Suhu Rata-rata</span>
+                  <div className="bg-bg-dark border border-border-medium rounded-xl p-4 overflow-hidden">
+                    <div className="flex items-center gap-2 text-text-muted mb-2">
+                      <ThermometerSun className="w-4 shrink-0 h-4" />
+                      <span className="text-xs uppercase font-semibold truncate">Suhu Rata-rata</span>
                     </div>
-                    <div className="text-2xl font-bold text-white">{selectedEval.temp}°C</div>
+                    <div className="text-2xl font-bold text-text-main truncate">{Number(selectedEval.temp).toFixed(1)}°C</div>
                   </div>
                   
-                  <div className="bg-bg-dark border border-white/10 rounded-xl p-4">
-                    <div className="flex items-center gap-2 text-gray-400 mb-2">
-                      <CloudRain className="w-4 h-4" />
-                      <span className="text-xs uppercase font-semibold">Curah Hujan</span>
+                  <div className="bg-bg-dark border border-border-medium rounded-xl p-4 overflow-hidden">
+                    <div className="flex items-center gap-2 text-text-muted mb-2">
+                      <CloudRain className="w-4 shrink-0 h-4" />
+                      <span className="text-xs uppercase font-semibold truncate">Curah Hujan</span>
                     </div>
-                    <div className="text-2xl font-bold text-white">{selectedEval.rain} mm</div>
+                    <div className="text-2xl font-bold text-text-main truncate">{Number(selectedEval.rain).toFixed(1)} mm</div>
                   </div>
                 </div>
               </div>
@@ -246,5 +355,8 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
       </div>
       
     </div>
+    </div>
   );
 }
+
+

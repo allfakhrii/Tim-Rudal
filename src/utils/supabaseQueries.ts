@@ -153,6 +153,20 @@ export async function getRiwayatPanens(petaniId: string): Promise<RiwayatPanen[]
   }));
 }
 
+// Menghapus riwayat panen berdasarkan ID
+export async function deleteRiwayatPanen(riwayatId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('riwayat_panen')
+    .delete()
+    .eq('id', riwayatId);
+
+  if (error) {
+    console.error('Gagal menghapus riwayat panen:', error.message);
+    return false;
+  }
+  return true;
+}
+
 // Menyimpan catatan hasil panen baru dan mengosongkan lahan
 export async function insertRiwayatPanen(
   panenData: Omit<RiwayatPanen, 'id'>, 
@@ -197,5 +211,60 @@ export async function insertRiwayatPanen(
     return false;
   }
 
+  return true;
+}
+
+// Menghapus lahan dari database
+export async function deleteLahan(lahanId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('lahan')
+    .delete()
+    .eq('id', lahanId);
+
+  if (error) {
+    console.error('Gagal menghapus lahan:', error.message);
+    return false;
+  }
+  return true;
+}
+
+// Memperbarui data Lahan (Edit Lahan)
+export async function updateLahanDetails(lahanId: string, lahan: Omit<Lahan, 'id' | 'status'>): Promise<boolean> {
+  const { error } = await supabase
+    .from('lahan')
+    .update({
+      nama: lahan.nama,
+      luas: lahan.luas,
+      koordinat: lahan.koordinat,
+      centroid: lahan.centroid,
+      ketinggian: lahan.ketinggian,
+      curah_hujan: lahan.curahHujan,
+      suhu: lahan.suhu,
+      tipe_drainase: lahan.tipeDrainase,
+      jenis_tanah: lahan.jenisTanah,
+      riwayat_hama: lahan.riwayatHama,
+    })
+    .eq('id', lahanId);
+
+  if (error) {
+    console.error('Gagal memperbarui lahan:', error.message);
+    return false;
+  }
+  return true;
+}
+
+// ==========================================
+// 4. QUERY PROFIL PETANI
+// ==========================================
+export async function updatePetaniProfile(petaniId: string, nama: string, komoditas: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('petani')
+    .update({ nama: nama, komoditas_utama: komoditas })
+    .eq('id', petaniId);
+
+  if (error) {
+    console.error('Gagal memperbarui profil petani:', error.message);
+    return false;
+  }
   return true;
 }
