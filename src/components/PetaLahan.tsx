@@ -546,10 +546,10 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
         className={cn(
           "bg-bg-card border-white/10 p-6 transition-all duration-300 ease-in-out flex flex-col justify-between",
           // Mobile Layout (Bottom Sheet)
-          "fixed bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-x shadow-2xl z-[401] lg:hidden",
+          "fixed bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-x shadow-2xl z-[401]",
           isExpanded ? "h-[80vh] translate-y-0" : "h-16 translate-y-0 overflow-hidden",
           // Desktop Layout (Normal Column)
-          "lg:relative lg:translate-y-0 lg:h-auto lg:border lg:rounded-2xl lg:z-10 lg:col-span-1 lg:shadow-none lg:overflow-y-auto"
+          "lg:relative lg:translate-y-0 lg:h-auto lg:border lg:rounded-2xl lg:z-10 lg:col-span-1 lg:shadow-none lg:overflow-y-auto lg:flex"
         )}
       >
         {/* Drag Handle & Mobile Title */}
