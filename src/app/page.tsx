@@ -307,7 +307,7 @@ export default function LandingPage() {
                 Sawah Terlindungi, <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light via-primary to-[#8bc34a] drop-shadow-sm">
                   Panen Melimpah.
-                </span> Secara Presisi.
+                </span> <br /> Secara Presisi.
               </motion.h1>
 
               {/* Subtext */}
