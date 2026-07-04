@@ -13,7 +13,16 @@ export default function AuthPage() {
   const mode = searchParams.get('mode');
 
   // --- AUTH STATES ---
-  const [authEmail, setAuthEmail] = useState<string>('');
+  const emailParam = searchParams.get('email') || '';
+  const [authEmail, setAuthEmail] = useState<string>(emailParam);
+
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setAuthEmail(emailParam);
+    }
+  }, [searchParams]);
+
   const [authPassword, setAuthPassword] = useState<string>('');
   const [authConfirmPassword, setAuthConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);

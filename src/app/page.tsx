@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sprout,
@@ -39,6 +40,16 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [isMobile, setIsMobile] = useState(true);
+  const router = useRouter();
+  const [heroEmail, setHeroEmail] = useState('');
+
+  const handleCobaSekarang = () => {
+    if (heroEmail.trim()) {
+      router.push(`/auth?mode=register&email=${encodeURIComponent(heroEmail.trim())}`);
+    } else {
+      router.push('/auth?mode=register');
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -289,16 +300,24 @@ export default function LandingPage() {
             >
               <input 
                 type="email" 
+                value={heroEmail}
+                onChange={(e) => setHeroEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCobaSekarang();
+                  }
+                }}
                 placeholder="Masukkan alamat email Anda..." 
                 className="flex-1 bg-transparent border-0 outline-none px-4 py-2 text-white text-xs md:text-sm placeholder:text-text-muted focus:ring-0 focus:outline-none"
               />
-              <Link 
-                href="/auth?mode=register" 
-                className="bg-primary hover:bg-primary-dark text-white font-bold text-xs md:text-sm px-6 py-3 rounded-full flex items-center gap-1.5 transition-all shadow-md shadow-primary/20 hover:translate-x-0.5"
+              <button 
+                type="button"
+                onClick={() => handleCobaSekarang()}
+                className="bg-primary hover:bg-primary-dark text-white font-bold text-xs md:text-sm px-6 py-3 rounded-full flex items-center gap-1.5 transition-all shadow-md shadow-primary/20 hover:translate-x-0.5 cursor-pointer"
               >
                 <span>Coba Sekarang</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </button>
             </motion.div>
 
             {/* Inline Features */}
