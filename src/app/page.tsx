@@ -113,11 +113,11 @@ export default function LandingPage() {
             {/* Actions (Desktop) */}
             <div className="hidden md:flex items-center gap-3 pr-2">
 
-              <Link href="/auth" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary-dark hover:bg-emerald-800 hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
+              <Link href="/auth" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary-dark hover:bg-primary hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
                 <span>Masuk</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href="/auth?mode=register" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary hover:bg-emerald-600 hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
+              <Link href="/auth?mode=register" className="px-5 py-2 rounded-full font-semibold text-sm text-[#050505] bg-primary-light hover:bg-primary hover:text-white hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
                 <span>Daftar</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -164,7 +164,7 @@ export default function LandingPage() {
                         initial={{ y: 50, opacity: 0, scale: 0.9 }}
                         animate={{ y: 0, opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 + (i * 0.1), duration: 0.5, type: 'spring', bounce: 0.4 }}
-                        className="text-white font-extrabold text-4xl uppercase tracking-widest hover:text-emerald-400 hover:scale-110 transition-all cursor-pointer"
+                        className="text-white font-extrabold text-4xl uppercase tracking-widest hover:text-primary-light hover:scale-110 transition-all cursor-pointer"
                       >
                         {item}
                       </motion.a>
@@ -178,8 +178,8 @@ export default function LandingPage() {
                   transition={{ delay: 0.6, duration: 0.5 }}
                   className="flex flex-col gap-4 w-full max-w-xs mt-12 relative z-10"
                 >
-                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all cursor-pointer">Masuk</Link>
-                  <Link href="/auth?mode=register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-[#050505] bg-emerald-400 hover:bg-emerald-300 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.3)] cursor-pointer">Daftar</Link>
+                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-primary-light bg-primary-light/10 border border-primary-light/30 hover:bg-primary-light hover:text-[#050505] hover:shadow-[0_0_20px_rgba(139,195,74,0.4)] transition-all cursor-pointer">Masuk</Link>
+                  <Link href="/auth?mode=register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-[#050505] bg-primary-light hover:bg-primary hover:text-white transition-all shadow-[0_0_20px_rgba(139,195,74,0.4)] cursor-pointer">Daftar</Link>
                 </motion.div>
               </motion.div>
             )}

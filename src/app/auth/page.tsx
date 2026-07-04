@@ -185,7 +185,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full bg-primary hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 flex justify-center items-center gap-2"
+                className="w-full bg-primary hover:bg-primary-light hover:text-[#050505] text-white font-bold py-4 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 flex justify-center items-center gap-2"
               >
                 {authLoading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
