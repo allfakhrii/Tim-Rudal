@@ -273,7 +273,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-white font-extrabold text-4xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-6 max-w-3xl"
+              className="text-white font-extrabold text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6 max-w-3xl"
             >
               Sawah Terlindungi, <br className="hidden md:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light via-primary to-[#8bc34a] drop-shadow-sm">
@@ -286,7 +286,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-text-muted text-sm md:text-base lg:text-lg mb-10 max-w-2xl leading-relaxed"
+              className="text-text-muted text-sm md:text-base lg:text-lg mb-10 max-w-2xl leading-relaxed px-4 md:px-0"
             >
               Platform pemantauan sawah cerdas bertenaga geospasial real-time. Deteksi kelayakan tanam, simulasikan risiko iklim ekstrem, dan amankan ketahanan pangan Anda.
             </motion.p>
@@ -296,7 +296,7 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="w-full max-w-lg bg-bg-card/45 backdrop-blur-md border border-white/10 p-1.5 rounded-full flex items-center shadow-2xl focus-within:border-primary/50 transition-all mb-12"
+              className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-transparent md:bg-zinc-900 border-0 md:border border-zinc-800 p-0 md:p-1.5 rounded-xl w-full max-w-md mx-auto mb-12"
             >
               <input 
                 type="email" 
@@ -308,12 +308,12 @@ export default function LandingPage() {
                   }
                 }}
                 placeholder="Masukkan alamat email Anda..." 
-                className="flex-1 bg-transparent border-0 outline-none px-4 py-2 text-white text-xs md:text-sm placeholder:text-text-muted focus:ring-0 focus:outline-none"
+                className="w-full bg-zinc-900 md:bg-transparent border border-zinc-800 md:border-0 p-4 md:p-2 rounded-xl outline-none text-white text-xs md:text-sm placeholder:text-text-muted focus:ring-0 focus:outline-none"
               />
               <button 
                 type="button"
                 onClick={() => handleCobaSekarang()}
-                className="bg-primary hover:bg-primary-dark text-white font-bold text-xs md:text-sm px-6 py-3 rounded-full flex items-center gap-1.5 transition-all shadow-md shadow-primary/20 hover:translate-x-0.5 cursor-pointer"
+                className="w-full md:w-auto bg-primary hover:bg-primary-dark text-white font-bold text-xs md:text-sm px-6 py-4 md:py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-primary/20 hover:translate-x-0.5 cursor-pointer shrink-0"
               >
                 <span>Coba Sekarang</span>
                 <ArrowRight className="w-4 h-4" />
@@ -325,18 +325,18 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-6 lg:gap-10 text-xs md:text-sm text-text-muted font-bold"
+              className="flex flex-col items-start gap-3 mt-8 text-sm px-4 md:flex-row md:justify-center md:gap-6 text-text-muted font-bold"
             >
               <div className="flex items-center gap-2">
-                <Sprout className="w-4.5 h-4.5 text-primary-light" />
+                <Sprout className="w-4.5 h-4.5 text-primary-light shrink-0" />
                 <span>Analisis Kelayakan & Rekomendasi Tanaman</span>
               </div>
               <div className="flex items-center gap-2">
-                <Activity className="w-4.5 h-4.5 text-primary-light" />
+                <Activity className="w-4.5 h-4.5 text-primary-light shrink-0" />
                 <span>Simulasi Musim Sulit & Tekanan Iklim</span>
               </div>
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4.5 h-4.5 text-primary-light" />
+                <AlertTriangle className="w-4.5 h-4.5 text-primary-light shrink-0" />
                 <span>Peringatan Dini Bencana & EWS Satelit</span>
               </div>
             </motion.div>
