@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -83,7 +83,7 @@ function HeroGeometric({
     id?: string;
     children?: React.ReactNode;
 }) {
-    const fadeUpVariants = {
+    const fadeUpVariants: Variants = {
         hidden: { opacity: 0, y: 30 },
         visible: (i: number) => ({
             opacity: 1,
