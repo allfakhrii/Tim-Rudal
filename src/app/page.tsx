@@ -113,12 +113,12 @@ export default function LandingPage() {
           {/* Actions (Desktop) */}
           <div className="hidden md:flex items-center gap-3 pr-2">
 
-            <Link href="/dashboard" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary-dark hover:bg-emerald-800 hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
-              <span>Login</span>
+            <Link href="/auth" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary-dark hover:bg-emerald-800 hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
+              <span>Masuk</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link href="/dashboard" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary hover:bg-emerald-600 hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
-              <span>Sign Up</span>
+            <Link href="/auth?mode=register" className="px-5 py-2 rounded-full font-semibold text-sm text-white bg-primary hover:bg-emerald-600 hover:shadow-md transition-all duration-300 flex items-center gap-2 hover:translate-x-0.5">
+              <span>Daftar</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -178,8 +178,8 @@ export default function LandingPage() {
                 transition={{ delay: 0.6, duration: 0.5 }}
                 className="flex flex-col gap-4 w-full max-w-xs mt-12 relative z-10"
               >
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all cursor-pointer">Login</Link>
-                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-[#050505] bg-emerald-400 hover:bg-emerald-300 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.3)] cursor-pointer">Sign Up</Link>
+                <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all cursor-pointer">Masuk</Link>
+                <Link href="/auth?mode=register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-[#050505] bg-emerald-400 hover:bg-emerald-300 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.3)] cursor-pointer">Daftar</Link>
               </motion.div>
             </motion.div>
           )}
@@ -225,7 +225,7 @@ export default function LandingPage() {
               Tingkatkan hasil panen Anda dengan platform pemantauan lahan presisi dan peringatan dini cuaca ekstrem berbasis teknologi geospasial real-time.
             </p>
             
-            <Link href="/dashboard" className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-bold rounded-full hover:bg-primary-dark shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 group overflow-hidden relative">
+            <Link href="/auth" className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-bold rounded-full hover:bg-primary-dark shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 group overflow-hidden relative">
               <span className="relative z-10 flex items-center gap-2">
                 Mulai Pantau Lahan Anda
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />

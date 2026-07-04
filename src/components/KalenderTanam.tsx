@@ -62,8 +62,10 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
               desc
             };
           }
-        } catch (err) {
-          console.warn('Failed to fetch weather for lahan:', lahan.nama);
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.warn('Failed to fetch weather for lahan:', lahan.nama);
+          }
           // Fallback
           weathers[lahan.id] = { temp: lahan.suhu || 28, desc: 'Offline' };
         }
@@ -109,8 +111,10 @@ export default function KalenderTanam({ savedLahans }: KalenderTanamProps) {
           const evals = evaluasiTanggalTanam(selectedTanaman, days);
           setEvaluations(evals);
         }
-      } catch (error) {
-        console.warn("Failed to fetch weather, using fallback data", error);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.warn("Failed to fetch weather, using fallback data", error);
+        }
         
         // --- Fallback Mock Data ---
         // Jika API gagal (misal tidak ada internet), gunakan data simulasi agar aplikasi tetap berjalan

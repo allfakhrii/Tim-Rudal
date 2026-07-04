@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sprout, Eye, EyeOff } from 'lucide-react';
 import { showAlertModal } from '@/utils/swal';
 
 export default function AuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode');
 
   // --- AUTH STATES ---
   const [authEmail, setAuthEmail] = useState<string>('');
@@ -16,7 +18,7 @@ export default function AuthPage() {
   const [authConfirmPassword, setAuthConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
-  const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
+  const [isRegisterMode, setIsRegisterMode] = useState<boolean>(mode === 'register');
   const [authError, setAuthError] = useState<string>('');
   const [authLoading, setAuthLoading] = useState<boolean>(false);
 
@@ -97,10 +99,10 @@ export default function AuthPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
           >
             <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base font-medium mb-1">
-              {isRegisterMode ? 'Start Your Farm' : 'Welcome Back'}
+              {isRegisterMode ? 'Mulai Pantau Lahan' : 'Selamat Datang Kembali'}
             </p>
             <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight">
-              {isRegisterMode ? 'Sign Up to' : 'Sign In to'} <span className="text-primary">EcoTani</span>
+              {isRegisterMode ? 'Daftar ke' : 'Masuk ke'} <span className="text-primary">EcoTani</span>
             </h1>
           </motion.div>
 
@@ -134,7 +136,7 @@ export default function AuthPage() {
             >
               <input
                 type={showPassword ? "text" : "password"}
-                placeholder="Password"
+                placeholder="Kata Sandi"
                 value={authPassword}
                 onChange={(e) => setAuthPassword(e.target.value)}
                 required
@@ -188,7 +190,7 @@ export default function AuthPage() {
                 {authLoading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  isRegisterMode ? 'Sign Up' : 'Sign In'
+                  isRegisterMode ? 'Daftar' : 'Masuk'
                 )}
               </button>
             </motion.div>
@@ -203,7 +205,7 @@ export default function AuthPage() {
           className="mt-8"
         >
           <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
-            {isRegisterMode ? 'Have an account?' : "Don't have an account?"}
+            {isRegisterMode ? 'Sudah punya akun?' : 'Belum punya akun?'}
             <button 
               onClick={() => {
                 setIsRegisterMode(!isRegisterMode);
@@ -214,7 +216,7 @@ export default function AuthPage() {
               }}
               className="ml-2 text-primary font-bold hover:underline bg-transparent border-none cursor-pointer"
             >
-              {isRegisterMode ? 'Sign In' : 'Sign Up'}
+              {isRegisterMode ? 'Masuk' : 'Daftar'}
             </button>
           </p>
         </motion.div>

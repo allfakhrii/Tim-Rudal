@@ -55,9 +55,11 @@ export default function EarlyWarning({ lahans }: { lahans: Lahan[] }) {
           }
         }
       })
-      .catch(error => {
-        // Gunakan console.warn alih-alih console.error agar tidak memicu layar error merah di Next.js saat internet mati
-        console.warn('Gagal memuat data cuaca untuk peringatan dini:', error.message);
+      .catch((error: any) => {
+        if (error.name !== 'AbortError') {
+          // Gunakan console.warn alih-alih console.error agar tidak memicu layar error merah di Next.js saat internet mati
+          console.warn('Gagal memuat data cuaca untuk peringatan dini:', error.message);
+        }
       });
   }, [lat, lng]);
 
