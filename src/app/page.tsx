@@ -250,96 +250,126 @@ export default function LandingPage() {
             <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-primary-light/10 rounded-full blur-[120px] opacity-40 mix-blend-screen hidden md:block z-20 pointer-events-none"></div>
           </div>
 
-          <div className="max-w-5xl mx-auto px-4 relative z-10 flex flex-col items-center text-center">
+          <div className="max-w-7xl mx-auto px-4 relative z-10">
 
-            {/* Pill Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full mb-6 backdrop-blur-sm cursor-pointer hover:bg-primary/20 transition-all duration-300"
-            >
-              <span className="bg-primary px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-white shrink-0" />
-                <span>Rilis</span>
-              </span>
-              <span className="text-primary-light font-bold text-xs tracking-wide flex items-center gap-1">
-                Mulai Simulasi Iklim Ekstrem Sekarang <ArrowRight className="w-3 h-3" />
-              </span>
-            </motion.div>
+            {/* MOBILE ONLY HERO (Original Left Column layout, stacked and left-aligned) */}
+            <div className="lg:hidden flex flex-col items-start text-left py-8">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full mb-6 backdrop-blur-sm">
+                <span className="w-2 h-2 rounded-full bg-primary-light animate-pulse"></span>
+                <span className="text-primary-light font-medium text-xs tracking-wide">Platform Pemantauan Pertanian Modern</span>
+              </div>
 
-            {/* Main Heading */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-white font-extrabold text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6 max-w-3xl"
-            >
-              Sawah Terlindungi, <br className="hidden md:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light via-primary to-[#8bc34a] drop-shadow-sm">
-                Panen Melimpah.
-              </span> Secara Presisi.
-            </motion.h1>
+              <h1 className="text-white font-extrabold text-4xl leading-[1.15] tracking-tight mb-6">
+                EcoTani: <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light to-primary drop-shadow-sm">
+                  Sawah Terlindungi,
+                </span><br />
+                Panen Terjaga
+              </h1>
 
-            {/* Subtext */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-text-muted text-sm md:text-base lg:text-lg mb-10 max-w-2xl leading-relaxed px-4 md:px-0"
-            >
-              Platform pemantauan sawah cerdas bertenaga geospasial real-time. Deteksi kelayakan tanam, simulasikan risiko iklim ekstrem, dan amankan ketahanan pangan Anda.
-            </motion.p>
+              <p className="text-gray-400 text-sm mb-10 max-w-lg leading-relaxed">
+                Tingkatkan hasil panen Anda dengan platform pemantauan lahan presisi dan peringatan dini cuaca ekstrem berbasis teknologi geospasial real-time.
+              </p>
 
-            {/* Email Signup Form */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-transparent md:bg-zinc-900 border-0 md:border border-zinc-800 p-0 md:p-1.5 rounded-xl w-full max-w-md mx-auto mb-12"
-            >
-              <input 
-                type="email" 
-                value={heroEmail}
-                onChange={(e) => setHeroEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCobaSekarang();
-                  }
-                }}
-                placeholder="Masukkan alamat email Anda..." 
-                className="w-full bg-zinc-900 md:bg-transparent border border-zinc-800 md:border-0 p-4 md:p-2 rounded-xl outline-none text-white text-xs md:text-sm placeholder:text-text-muted focus:ring-0 focus:outline-none"
-              />
-              <button 
-                type="button"
-                onClick={() => handleCobaSekarang()}
-                className="w-full md:w-auto bg-primary hover:bg-primary-dark text-white font-bold text-xs md:text-sm px-6 py-4 md:py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-primary/20 hover:translate-x-0.5 cursor-pointer shrink-0"
+              <Link href="/auth" className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-bold rounded-full hover:bg-primary-dark shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 group overflow-hidden relative">
+                <span className="relative z-10 flex items-center gap-2">
+                  Mulai Pantau Lahan Anda
+                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
+              </Link>
+            </div>
+
+            {/* DESKTOP ONLY HERO (New Centered Layout with Email pre-fill & video background support) */}
+            <div className="hidden lg:flex flex-col items-center text-center max-w-5xl mx-auto py-12">
+              {/* Pill Badge */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full mb-6 backdrop-blur-sm cursor-pointer hover:bg-primary/20 transition-all duration-300"
               >
-                <span>Coba Sekarang</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </motion.div>
+                <span className="bg-primary px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-white shrink-0" />
+                  <span>Rilis</span>
+                </span>
+                <span className="text-primary-light font-bold text-xs tracking-wide flex items-center gap-1">
+                  Mulai Simulasi Iklim Ekstrem Sekarang <ArrowRight className="w-3 h-3" />
+                </span>
+              </motion.div>
 
-            {/* Inline Features */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="flex flex-col items-start gap-3 mt-8 text-sm px-4 md:flex-row md:justify-center md:gap-6 text-text-muted font-bold"
-            >
-              <div className="flex items-center gap-2">
-                <Sprout className="w-4.5 h-4.5 text-primary-light shrink-0" />
-                <span>Analisis Kelayakan & Rekomendasi Tanaman</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Activity className="w-4.5 h-4.5 text-primary-light shrink-0" />
-                <span>Simulasi Musim Sulit & Tekanan Iklim</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4.5 h-4.5 text-primary-light shrink-0" />
-                <span>Peringatan Dini Bencana & EWS Satelit</span>
-              </div>
-            </motion.div>
+              {/* Main Heading */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.1 }}
+                className="text-white font-extrabold text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6 max-w-3xl"
+              >
+                Sawah Terlindungi, <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light via-primary to-[#8bc34a] drop-shadow-sm">
+                  Panen Melimpah.
+                </span> Secara Presisi.
+              </motion.h1>
+
+              {/* Subtext */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-text-muted text-lg mb-10 max-w-2xl leading-relaxed"
+              >
+                Platform pemantauan sawah cerdas bertenaga geospasial real-time. Deteksi kelayakan tanam, simulasikan risiko iklim ekstrem, dan amankan ketahanan pangan Anda.
+              </motion.p>
+
+              {/* Email Signup Form */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="flex flex-row items-center gap-3 bg-zinc-900 border border-zinc-800 p-1.5 rounded-xl w-full max-w-md mx-auto mb-12 focus-within:border-primary/50 transition-all"
+              >
+                <input 
+                  type="email" 
+                  value={heroEmail}
+                  onChange={(e) => setHeroEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCobaSekarang();
+                    }
+                  }}
+                  placeholder="Masukkan alamat email Anda..." 
+                  className="w-full bg-transparent border-0 p-2 outline-none text-white text-xs md:text-sm placeholder:text-text-muted focus:ring-0 focus:outline-none"
+                />
+                <button 
+                  type="button"
+                  onClick={() => handleCobaSekarang()}
+                  className="bg-primary hover:bg-primary-dark text-white font-bold text-xs md:text-sm px-6 py-3 rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-primary/20 hover:translate-x-0.5 cursor-pointer shrink-0"
+                >
+                  <span>Coba Sekarang</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </motion.div>
+
+              {/* Inline Features */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="flex flex-row justify-center gap-6 lg:gap-10 text-sm text-text-muted font-bold"
+              >
+                <div className="flex items-center gap-2">
+                  <Sprout className="w-4.5 h-4.5 text-primary-light shrink-0" />
+                  <span>Analisis Kelayakan & Rekomendasi Tanaman</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4.5 h-4.5 text-primary-light shrink-0" />
+                  <span>Simulasi Musim Sulit & Tekanan Iklim</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4.5 h-4.5 text-primary-light shrink-0" />
+                  <span>Peringatan Dini Bencana & EWS Satelit</span>
+                </div>
+              </motion.div>
+            </div>
 
           </div>
         </section>
