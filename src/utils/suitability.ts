@@ -515,10 +515,10 @@ export function evaluasiLahanDinamis(lahan: Lahan, cropDb: any): HasilEvaluasi {
       actualStr = `${lahan.ketinggian} mdpl`;
       idealStr = `${s1_min} - ${s1_max} mdpl`;
     } else if (parameter === 'ph_tanah') {
-      actualStr = lahan.pH || '6.5 (Netral)';
+      actualStr = lahan.pH !== undefined ? String(lahan.pH) : '6.5 (Netral)';
       idealStr = `${s1_min} - ${s1_max}`;
     } else if (parameter === 'lereng') {
-      actualStr = lahan.slope || 'Datar (<3%)';
+      actualStr = lahan.slope !== undefined ? String(lahan.slope) : 'Datar (<3%)';
       idealStr = s1_max && Number(s1_max) <= 3 ? '< 3%' : `${s1_min} - ${s1_max}%`;
     } else if (parameter === 'drainase') {
       actualStr = lahan.tipeDrainase;
