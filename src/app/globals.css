@@ -203,7 +203,7 @@ body {
 
 /* Dark mode override for Leaflet map tiles (OSM only) */
 .osm-mode .leaflet-tile-pane {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  /* Removed invert filter to show standard Google Maps styling */
 }
 
 .leaflet-bar {

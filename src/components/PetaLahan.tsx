@@ -7,6 +7,7 @@ import { Lahan, Tanaman } from '../types';
 import { MapPin, Check, RefreshCw, Layers, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showAlertModal } from '../utils/swal';
+import { motion, useDragControls } from 'framer-motion';
 
 // Fix Leaflet marker icon issue in Next.js/Webpack
 const getMarkerIcon = () => {
@@ -76,6 +77,27 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
   // Custom Map Layer Toggle State
   const [isSatellite, setIsSatellite] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+  const dragControls = useDragControls();
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileDevice(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!initialLahan) {
+      showAlertModal(
+        'Panduan Menggambar Lahan',
+        'Silakan ketuk/klik pada peta minimal di 3 titik koordinat untuk menggambar batas area lahan sawah Anda. Setelah selesai, isi informasi detail lahan di panel bawah.',
+        'info'
+      );
+    }
+  }, [initialLahan]);
 
   useEffect(() => {
     async function fetchTanaman() {
@@ -467,6 +489,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
           <span>{isSatellite ? 'Ubah ke Peta Jalan' : 'Ubah ke Satelit'}</span>
         </button>
 
+
         <MapContainer 
           center={initialLahan ? initialLahan.centroid : [-7.150, 110.140]} 
           zoom={initialLahan ? 15 : 10} 
@@ -479,9 +502,10 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
             key={isSatellite ? 'sat' : 'osm'}
             attribution='&copy; <a href="https://maps.google.com">Google Maps</a>'
             url={isSatellite 
-              ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
-              : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
+              ? 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+              : 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
             }
+            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
             maxZoom={22}
             maxNativeZoom={21}
             detectRetina={true}
@@ -553,19 +577,38 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
       </div>
 
       {/* Form Data Lahan & Deteksi Sensor */}
-      <div 
+      <motion.div 
+        drag={isMobileDevice ? "y" : false}
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0.1, bottom: 0.6 }}
+        onDragEnd={(event, info) => {
+          if (info.offset.y < -50) {
+            setIsExpanded(true);
+          } else if (info.offset.y > 50) {
+            setIsExpanded(false);
+          }
+        }}
+        animate={isMobileDevice ? (isExpanded ? "expanded" : "collapsed") : "desktop"}
+        variants={{
+          collapsed: { height: "64px", y: 0 },
+          expanded: { height: "80vh", y: 0 },
+          desktop: { height: "auto", y: 0 }
+        }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className={cn(
-          "bg-bg-card border-white/10 p-6 transition-all duration-300 ease-in-out flex flex-col justify-between",
+          "bg-bg-card border-white/10 p-6 flex flex-col justify-between",
           // Mobile Layout (Bottom Sheet)
-          "fixed bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-x shadow-2xl z-[401]",
-          isExpanded ? "h-[80vh] translate-y-0" : "h-16 translate-y-0 overflow-hidden",
+          "fixed bottom-0 left-0 right-0 w-full rounded-t-3xl border-t border-x shadow-2xl z-[401] overflow-hidden",
           // Desktop Layout (Normal Column)
           "lg:relative lg:translate-y-0 lg:h-auto lg:border lg:rounded-2xl lg:z-10 lg:col-span-1 lg:shadow-none lg:overflow-y-auto lg:flex"
         )}
       >
         {/* Drag Handle & Mobile Title */}
         <div 
-          className="lg:hidden flex flex-col items-center justify-center cursor-pointer pb-4 border-b border-white/5"
+          className="lg:hidden flex flex-col items-center justify-center cursor-pointer pb-4 border-b border-white/5 select-none touch-none"
+          onPointerDown={(e) => dragControls.start(e)}
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="w-12 h-1 bg-zinc-600 rounded-full mb-2" />
@@ -774,7 +817,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
             <span>{initialLahan ? 'Perbarui Lahan' : 'Simpan Lahan'}</span>
           </button>
         </div>
-      </div>
+      </motion.div>
 
     </div>
   );
