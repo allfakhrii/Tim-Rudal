@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="public/logo.png" alt="Logo" width="120" />
+  
+  # 🌾 Smart AgriMap & Crop Suitability Analyzer
+  **Platform Pemetaan Lahan & Analisis Cerdas Kelayakan Tanam Nusantara**
 
-## Getting Started
+  [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+  [![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+  [![Leaflet](https://img.shields.io/badge/Leaflet-Maps-199900?style=for-the-badge&logo=leaflet)](https://leafletjs.com/)
 
-First, run the development server:
+  *Proyek ini dikembangkan untuk ajang kompetisi **Lomba TIC (Tech Innovation Challenge)***.
+</div>
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📖 Deskripsi Proyek
+**Smart AgriMap** adalah aplikasi berbasis web revolusioner yang dirancang khusus untuk membantu petani, penyuluh pertanian, dan pengambil kebijakan dalam menentukan **komoditas tanaman paling presisi dan menguntungkan** untuk suatu petak lahan.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Dengan menggabungkan teknologi Sistem Informasi Geografis (GIS) dan algoritma kesesuaian lahan (merujuk pada standar agroklimatologi / FAO), aplikasi ini mampu melakukan evaluasi mendalam terhadap suhu, curah hujan, pH, elevasi (kemiringan), dan tekstur tanah. Hasilnya bukan hanya skor kecocokan, melainkan juga **langkah mitigasi taktis** (kebutuhan pupuk, kapur pertanian, dan irigasi) serta perhitungan proyeksi hasil panen.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## ✨ Fitur Unggulan
 
-To learn more about Next.js, take a look at the following resources:
+- 🗺️ **Pemetaan Lahan Interaktif (Interactive GIS)** 
+  Petani dapat menggambar (*polygon mapping*) batas lahan mereka langsung di atas peta satelit. Sistem secara otomatis akan menghitung luas lahan (m²) dan titik pusat koordinat (*centroid*).
+  
+- 🔬 **Analisis Kelayakan Lahan Multi-Parameter**
+  Mengevaluasi kecocokan tanaman yang dipilih berdasarkan parameter krusial: Suhu Udara, Curah Hujan, pH Tanah, Kemiringan (Slope), Tekstur Tanah, dan KTK Tanah. Output dievaluasi dalam kelas kesesuaian: `S1` (Sangat Sesuai), `S2` (Sesuai), `S3` (Sesuai Marginal), hingga `N` (Tidak Sesuai).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 💡 **Rekomendasi & Mitigasi Taktis Otomatis**
+  Jika lahan terdeteksi terlalu asam (pH rendah), sistem akan otomatis menghitung estimasi **kebutuhan Dolomit/Kapur Pertanian** per hektar. Jika tekstur tanah kurang ideal, sistem memberikan rekomendasi jumlah pemupukan organik yang presisi.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- 🔄 **Sistem Rekomendasi Tanaman Alternatif (*Smart Recommender*)**
+  Jika tanaman yang dipilih dirasa kurang cocok (Skor < 90), AI aplikasi akan mencari silang seluruh database komoditas dan merekomendasikan daftar tanaman pengganti yang 100% cocok dengan kondisi lahan tersebut.
 
-## Deploy on Vercel
+- 💰 **Kalkulator Panen & Proyeksi Ekonomi**
+  Terintegrasi dengan sistem pencatatan Riwayat Panen. Menghitung otomatis estimasi tonase hasil panen berdasarkan luas lahan dan harga pasar (*real-time* base) untuk memproyeksikan potensi pendapatan kotor petani.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack & Teknologi
+
+Aplikasi ini dibangun menggunakan arsitektur modern untuk memastikan performa yang cepat, aman, dan *scalable*:
+
+- **Frontend:** [Next.js](https://nextjs.org/) (App Router), React, TypeScript
+- **Styling UI:** [Tailwind CSS](https://tailwindcss.com/), Framer Motion (Micro-animations)
+- **Database & Auth:** [Supabase](https://supabase.com/) (PostgreSQL), Supabase Auth
+- **Mapping/GIS:** React-Leaflet, Leaflet.js
+- **Icons & Assets:** Lucide React
+
+---
+
+## ⚙️ Instalasi & Menjalankan Aplikasi Lokal
+
+Ikuti langkah-langkah berikut untuk menjalankan proyek ini di komputer Anda (Localhost).
+
+### Prasyarat
+- Node.js (Versi 18 atau lebih baru)
+- Akun [Supabase](https://supabase.com/) (untuk *environment variables*)
+
+### Langkah-langkah
+
+1. **Clone repository ini**
+   ```bash
+   git clone https://github.com/username-anda/smart-agrimap-tic.git
+   cd smart-agrimap-tic
