@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/logo.png" alt="Logo" width="120" />
+  <img src="public/assets/logo.webp" alt="Logo" width="120" />
   
   # 🌾 Smart AgriMap & Crop Suitability Analyzer
   **Platform Pemetaan Lahan & Analisis Cerdas Kelayakan Tanam Nusantara**
