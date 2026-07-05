@@ -1,3 +1,28 @@
+export interface KriteriaTanaman {
+  id: string;
+  tanaman_id: string;
+  parameter: string; // e.g. 'Suhu', 'Curah Hujan', 'pH', 'Slope'
+  s1_min: number | null;
+  s1_max: number | null;
+  s2_min: number | null;
+  s2_max: number | null;
+  s3_min: number | null;
+  s3_max: number | null;
+  s1_text: string | null;
+  s2_text: string | null;
+  s3_text: string | null;
+  created_at?: string;
+}
+
+export interface Tanaman {
+  id: string;
+  nama: string;
+  nama_latin: string | null;
+  kategori: string | null;
+  siklus_tanam_days: number | null;
+  created_at?: string;
+}
+
 export interface Lahan {
   id: string;
   nama: string;
@@ -10,12 +35,13 @@ export interface Lahan {
   tipeDrainase: 'Sangat Terhambat' | 'Terhambat' | 'Agak Terhambat' | 'Agak Baik' | 'Baik' | 'Agak Cepat' | 'Cepat';
   jenisTanah: 'Humus' | 'Lempung' | 'Pasir' | 'Gambut';
   riwayatHama: 'Ada' | 'Tidak';
-  pH?: string;
-  slope?: string;
+  pH?: number;
+  slope?: number;
   clay?: number;
   sand?: number;
   cec?: number;
   status: 'kosong' | 'sedang-ditanam' | 'siap-panen';
+  tanaman_id?: string;
   varietasDitanam?: string;
   tanggalTanam?: string;
   kebutuhanAirDaily?: number; // liter
@@ -32,17 +58,4 @@ export interface RiwayatPanen {
   statusHasil: 'sukses' | 'gagal' | 'sebagian';
   beratPanen: number; // kg
   pendapatanEstimasi: number; // Rupiah
-}
-
-export interface Tanaman {
-  id: string;
-  nama: string;
-  kebutuhanSuhu: { min: number; max: number }; // °C
-  kebutuhanCurahHujan: { min: number; max: number }; // mm/bulan
-  kebutuhanKetinggian: { min: number; max: number }; // mdpl
-  tanahCocok: string[]; // ['Humus', 'Lempung']
-  drainaseCocok: string; // 'Baik'
-  siklusTanamDays: number;
-  hargaPasar?: { min: number; max: number }; // Harga per kg (Rupiah)
-  potensiHasil?: { min: number; max: number }; // Potensi hasil panen (kg/m²)
 }

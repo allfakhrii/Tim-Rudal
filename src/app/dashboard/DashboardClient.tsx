@@ -97,9 +97,12 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   const [selectedLahan, setSelectedLahan] = useState<Lahan | null>(null);
   const [cropsList, setCropsList] = useState<any[]>([]);
   const [selectedCropId, setSelectedCropId] = useState<string>('');
+  const [selectedKategori, setSelectedKategori] = useState<string>('');
+  const [isKategoriDropdownOpen, setIsKategoriDropdownOpen] = useState(false);
   const [isCropDropdownOpen, setIsCropDropdownOpen] = useState(false);
   const [cropSearchQuery, setCropSearchQuery] = useState('');
   const [activeStep, setActiveStep] = useState<number>(1);
+  const [openAltGroup, setOpenAltGroup] = useState<string>('90-100');
   const [animateProgress, setAnimateProgress] = useState(false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('Suhu');
@@ -304,9 +307,9 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
       setPanens(fetchedPanens);
       setCropsList(fetchedCrops);
       setClimateScenarios(fetchedScenarios);
-      if (fetchedCrops.length > 0) {
-        setSelectedCropId(fetchedCrops[0].id);
-      }
+      // if (fetchedCrops.length > 0) {
+      //   setSelectedCropId(fetchedCrops[0].id);
+      // }
     } catch (e) {
       console.error('Gagal memuat data:', e);
     } finally {
@@ -495,7 +498,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
 
     if (success) {
       if (keputusan === 'tetap_tanam') {
-        const activeCrop = cropsList.find(c => c.id === selectedCropId) || (cropsList.length > 0 ? cropsList[0] : null);
+        const activeCrop = cropsList.find(c => c.id === selectedCropId) || null;
         handleConfirmTanam(selectedCropId, stressTestResult?.saranMitigasi || (activeCrop ? evaluasiLahanDinamis(selectedLahan, activeCrop).saranMitigasi : ''));
       } else {
         // Go to alternatives
@@ -824,15 +827,23 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   // ==========================================================================
   if (currentView === 'suitability' && selectedLahan) {
     const lahanToEvaluate = liveWeather ? { ...selectedLahan, suhu: liveWeather.suhu, curahHujan: liveWeather.curahHujan } : selectedLahan;
-    const activeCrop = cropsList.find(c => c.id === selectedCropId) || (cropsList.length > 0 ? cropsList[0] : null);
+    const activeCrop = cropsList.find(c => c.id === selectedCropId) || null;
     const evalResult = activeCrop 
       ? evaluasiLahanDinamis(lahanToEvaluate, activeCrop) 
       : { layak: false, skor: 0, skorPotensial: 0, kendala: [], siklusPemupukan: [], kebutuhanAirDaily: 5, saranMitigasi: '', details: [] };
     const alternatifList = cropsList.length > 0 ? cariAlternatifDinamis(lahanToEvaluate, cropsList) : [];
-    const filteredCrops = cropsList.filter(crop =>
-      crop.nama.toLowerCase().includes(cropSearchQuery.toLowerCase()) ||
-      (crop.nama_latin && crop.nama_latin.toLowerCase().includes(cropSearchQuery.toLowerCase()))
-    );
+    const filteredCrops = cropsList.filter(crop => {
+      const matchSearch = crop.nama.toLowerCase().includes(cropSearchQuery.toLowerCase()) ||
+                          (crop.nama_latin && crop.nama_latin.toLowerCase().includes(cropSearchQuery.toLowerCase()));
+      const matchKategori = selectedKategori ? (crop.kategori || 'Lainnya') === selectedKategori : true;
+      return matchSearch && matchKategori;
+    });
+    
+    const uniqueKategori = Array.from(new Set(cropsList.map(c => c.kategori || 'Lainnya'))).sort((a, b) => {
+      if (a === 'Lainnya') return 1;
+      if (b === 'Lainnya') return -1;
+      return a.localeCompare(b);
+    });
 
     // Compute tactical mitigations
     const mitigasiTaktis: any[] = [];
@@ -999,15 +1010,67 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   className="space-y-6"
                 >
                   <div className="bg-bg-dark border border-border-medium rounded-2xl p-5">
+                    
+                    {/* DROPDOWN KATEGORI */}
+                    <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Pilih Kategori</label>
+                    <div className="relative mb-6">
+                      <button
+                        type="button"
+                        onClick={() => setIsKategoriDropdownOpen(!isKategoriDropdownOpen)}
+                        className={`w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-left focus:outline-none focus:border-primary transition-all text-sm flex justify-between items-center ${selectedKategori ? 'text-white font-bold' : 'text-text-muted font-normal'}`}
+                      >
+                        <span>{selectedKategori || 'Pilih Kategori...'}</span>
+                        <ChevronDown className={`w-4 h-4 transform transition-transform duration-200 ${isKategoriDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isKategoriDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsKategoriDropdownOpen(false)} />
+                          <div className="absolute z-50 mt-2 w-full bg-bg-card border border-border-medium rounded-xl shadow-2xl p-2 space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedKategori('');
+                                setIsKategoriDropdownOpen(false);
+                                setSelectedCropId('');
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${
+                                selectedKategori === '' ? 'bg-primary/20 border border-primary text-white font-bold' : 'hover:bg-white/5 text-text-muted hover:text-text-main'
+                              }`}
+                            >
+                              Semua Kategori
+                            </button>
+                            {uniqueKategori.map(kat => (
+                              <button
+                                key={kat}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedKategori(kat);
+                                  setIsKategoriDropdownOpen(false);
+                                  setSelectedCropId('');
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${
+                                  kat === selectedKategori ? 'bg-primary/20 border border-primary text-white font-bold' : 'hover:bg-white/5 text-text-muted hover:text-text-main'
+                                }`}
+                              >
+                                {kat}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* DROPDOWN KOMODITAS */}
                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Pilih Komoditas Tanaman</label>
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setIsCropDropdownOpen(!isCropDropdownOpen)}
-                        className="w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-left text-white focus:outline-none focus:border-primary transition-all text-sm font-bold flex justify-between items-center"
+                        className={`w-full bg-bg-dark border border-white/10 rounded-xl px-4 py-3 text-left focus:outline-none focus:border-primary transition-all text-sm flex justify-between items-center ${activeCrop ? 'text-white font-bold' : 'text-text-muted font-normal'}`}
                       >
                         <span>
-                          {activeCrop ? `${activeCrop.nama} ${activeCrop.nama_latin ? `(${activeCrop.nama_latin})` : ''}` : 'Pilih Komoditas Tanaman'}
+                          {activeCrop ? `${activeCrop.nama} ${activeCrop.nama_latin ? `(${activeCrop.nama_latin})` : ''}` : 'Pilih Komoditas Tanaman...'}
                         </span>
                         <ChevronDown className={`w-4 h-4 transform transition-transform duration-200 ${isCropDropdownOpen ? 'rotate-180' : ''}`} />
                       </button>
@@ -1071,7 +1134,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           setActiveStep(2);
                         }
                       }}
-                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-primary-dark text-text-inverse font-bold text-sm transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-primary hover:bg-primary-dark text-text-inverse font-bold text-sm transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:shadow-none"
                     >
                       <span>Analisis Kelayakan Lahan</span>
                       <ArrowRight className="w-4 h-4" />
@@ -1706,35 +1769,141 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   className="space-y-6"
                 >
                   {/* Alternatives */}
-                  {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId).length > 0 && (
+                  {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId && a.evaluasi.skor >= 70).length > 0 && (
                     <div className="bg-bg-dark border border-border-light rounded-2xl p-5 space-y-4 shadow-md">
                       <h4 className="font-bold text-text-main text-sm flex items-center gap-2 border-b border-white/5 pb-2.5">
                         <TrendingUp className="w-4.5 h-4.5 text-primary" />
                         <span>Rekomendasi Tanaman Alternatif Terdekat</span>
                       </h4>
                       <div className="space-y-3">
-                        {alternatifList.filter(a => a.tanaman.id !== selectedCropId).slice(0, 2).map((alt) => (
-                          <div key={alt.tanaman.id} className="flex items-center justify-between p-3.5 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/20 transition-all">
-                            <div className="space-y-1">
-                              <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
-                              <span className="text-text-muted block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="text-primary/90 font-semibold bg-primary-dark/20 px-2 py-0.5 rounded border border-primary/10">Kecocokan: {alt.evaluasi.skor}%</span>
+                        {(() => {
+                          const altFiltered = alternatifList.filter(a => a.tanaman.id !== selectedCropId);
+                          const group90 = altFiltered.filter(a => a.evaluasi.skor >= 90);
+                          const group80 = altFiltered.filter(a => a.evaluasi.skor >= 80 && a.evaluasi.skor < 90);
+                          const group70 = altFiltered.filter(a => a.evaluasi.skor >= 70 && a.evaluasi.skor < 80);
+                          const altGroups = [
+                            { id: '90-100', label: 'Sangat Sesuai (Skor 90-100)', items: group90, badgeColor: 'text-green-500 bg-green-500/10' },
+                            { id: '80-89', label: 'Sesuai (Skor 80-89)', items: group80, badgeColor: 'text-emerald-500 bg-emerald-500/10' },
+                            { id: '70-79', label: 'Cukup Sesuai Marginal (Skor 70-79)', items: group70, badgeColor: 'text-yellow-500 bg-yellow-500/10' }
+                          ].filter(g => g.items.length > 0);
+
+                          return altGroups.map(group => (
+                            <div key={group.id} className="border border-border-medium rounded-xl overflow-hidden shadow-sm">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setSelectedCropId(alt.tanaman.id);
-                                  setActiveStep(1); // Back to Step 1 to let them analyze it
-                                  handleResetStressTest();
-                                }}
-                                className="bg-border-medium hover:bg-white/10 text-text-main font-bold py-2 px-4 rounded-xl transition-all text-[11px] cursor-pointer"
+                                onClick={() => setOpenAltGroup(openAltGroup === group.id ? '' : group.id)}
+                                className="w-full flex items-center justify-between p-3.5 bg-bg-card hover:bg-white/5 transition-colors text-left"
                               >
-                                Pilih
+                                <span className="font-semibold text-xs text-text-main">{group.label} <span className={`${group.badgeColor} px-2 py-0.5 rounded-full ml-1`}>{group.items.length} opsi</span></span>
+                                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform duration-200 ${openAltGroup === group.id ? 'rotate-180' : ''}`} />
                               </button>
+                              
+                              <AnimatePresence>
+                                {openAltGroup === group.id && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="bg-bg-dark border-t border-border-medium overflow-hidden"
+                                  >
+                                    <div className="p-3 space-y-2">
+                                      {group.items.map(alt => (
+                                        <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/40 hover:shadow-md transition-all">
+                                          <div className="space-y-1">
+                                            <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
+                                            <span className="text-text-muted block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
+                                          </div>
+                                          <div className="flex items-center gap-4">
+                                            <span className="text-primary/90 font-semibold bg-primary-dark/20 px-2 py-1 rounded border border-primary/20">Kecocokan: {alt.evaluasi.skor}%</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setSelectedCropId(alt.tanaman.id);
+                                                setActiveStep(1);
+                                                handleResetStressTest();
+                                              }}
+                                              className="bg-primary hover:bg-primary-dark text-text-inverse shadow-sm hover:shadow-primary/20 font-bold py-1.5 px-3 rounded-lg transition-all text-xs cursor-pointer"
+                                            >
+                                              Pilih
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
-                          </div>
-                        ))}
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tanaman yang Tidak Cocok */}
+                  {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId && a.evaluasi.skor < 70).length > 0 && (
+                    <div className="bg-bg-dark border border-border-light rounded-2xl p-5 space-y-4 shadow-md">
+                      <h4 className="font-bold text-red-400 text-sm flex items-center gap-2 border-b border-white/5 pb-2.5">
+                        <XCircle className="w-4.5 h-4.5 text-red-500" />
+                        <span>Tanaman yang tidak cocok</span>
+                      </h4>
+                      <div className="space-y-3">
+                        {(() => {
+                          const altFiltered = alternatifList.filter(a => a.tanaman.id !== selectedCropId);
+                          const group0_69 = altFiltered.filter(a => a.evaluasi.skor < 70);
+                          const altGroups = [
+                            { id: '0-69', label: 'Tidak Direkomendasikan (Skor < 70)', items: group0_69, badgeColor: 'text-red-500 bg-red-500/10' }
+                          ].filter(g => g.items.length > 0);
+
+                          return altGroups.map(group => (
+                            <div key={group.id} className="border border-border-medium rounded-xl overflow-hidden shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => setOpenAltGroup(openAltGroup === group.id ? '' : group.id)}
+                                className="w-full flex items-center justify-between p-3.5 bg-bg-card hover:bg-white/5 transition-colors text-left"
+                              >
+                                <span className="font-semibold text-xs text-text-main">{group.label} <span className={`${group.badgeColor} px-2 py-0.5 rounded-full ml-1`}>{group.items.length} opsi</span></span>
+                                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform duration-200 ${openAltGroup === group.id ? 'rotate-180' : ''}`} />
+                              </button>
+                              
+                              <AnimatePresence>
+                                {openAltGroup === group.id && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="bg-bg-dark border-t border-border-medium overflow-hidden"
+                                  >
+                                    <div className="p-3 space-y-2">
+                                      {group.items.map(alt => (
+                                        <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-red-500/40 hover:shadow-md transition-all">
+                                          <div className="space-y-1">
+                                            <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
+                                            <span className="text-text-muted block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
+                                          </div>
+                                          <div className="flex items-center gap-4">
+                                            <span className="text-red-400 font-semibold bg-red-500/10 px-2 py-1 rounded border border-red-500/20">Kecocokan: {alt.evaluasi.skor}%</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setSelectedCropId(alt.tanaman.id);
+                                                setActiveStep(1);
+                                                handleResetStressTest();
+                                              }}
+                                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 shadow-sm border border-red-500/20 font-bold py-1.5 px-3 rounded-lg transition-all text-xs cursor-pointer"
+                                            >
+                                              Pilih
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </div>
                   )}
@@ -2158,7 +2327,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
               onClick={() => {
                 // Initialize default values for the harvest form
                 const cropData = cropsList.find(t => t.nama === selectedLahan?.varietasDitanam);
-                const hargaDef = 7000; // standard average default
+                const hargaDef = cropData?.harga_pasar || 7000; 
                 
                 setBeratPanen(0);
                 setHargaJual(hargaDef);
@@ -2181,7 +2350,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   // ==========================================================================
   if (currentView === 'panen' && selectedLahan) {
     const cropData = cropsList.find(t => t.nama === selectedLahan.varietasDitanam);
-    const hargaDefault = 7000;
+    const hargaDefault = cropData?.harga_pasar || 7000;
     
     // Default values are now set in the onClick handler when entering this view.
 
@@ -2603,7 +2772,8 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           );
                           if (confirmed) {
                             setSelectedLahan(lahan);
-                            const hargaDef = 7000;
+                            const cropData = cropsList.find(t => t.nama === lahan.varietasDitanam);
+                            const hargaDef = cropData?.harga_pasar || 7000;
                             setBeratPanen(0);
                             setHargaJual(hargaDef);
                             setStatusHasil('sukses');

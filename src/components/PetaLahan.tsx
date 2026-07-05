@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Lahan } from '../types';
+import { Lahan, Tanaman } from '../types';
 import { MapPin, Check, RefreshCw, Layers, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { showAlertModal } from '../utils/swal';
@@ -54,10 +54,12 @@ interface PetaLahanProps {
 export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLahan }: PetaLahanProps) {
   const [points, setPoints] = useState<[number, number][]>(initialLahan?.koordinat || []);
   const [landName, setLandName] = useState(initialLahan?.nama || '');
+  const [tanamanId, setTanamanId] = useState<string>(initialLahan?.tanaman_id || '');
+  const [tanamanList, setTanamanList] = useState<Tanaman[]>([]);
   const [soilType, setSoilType] = useState<Lahan['jenisTanah']>(initialLahan?.jenisTanah || 'Lempung');
   const [drainage, setDrainage] = useState<Lahan['tipeDrainase']>(initialLahan?.tipeDrainase || 'Baik');
   const [pestHistory, setPestHistory] = useState<Lahan['riwayatHama']>(initialLahan?.riwayatHama || 'Tidak');
-  const [pHLevel, setPHLevel] = useState<string>(initialLahan?.pH || 'Netral (6.5 - 7.5)');
+  const [pHLevel, setPHLevel] = useState<string>(initialLahan?.pH?.toString() || 'Netral (6.5 - 7.5)');
   const [isAutoDetected, setIsAutoDetected] = useState(false);
   const [isFetchingPH, setIsFetchingPH] = useState(false);
   const [isSoilAutoDetected, setIsSoilAutoDetected] = useState(false);
@@ -74,6 +76,15 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
   // Custom Map Layer Toggle State
   const [isSatellite, setIsSatellite] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    async function fetchTanaman() {
+      const { getTanaman } = await import('../utils/supabaseQueries');
+      const data = await getTanaman();
+      setTanamanList(data);
+    }
+    fetchTanaman();
+  }, []);
 
   // Simulated geospasial stats calculated from drawn points
   const [stats, setStats] = useState<{
@@ -389,11 +400,12 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
         tipeDrainase: drainage,
         jenisTanah: soilType,
         riwayatHama: pestHistory,
-        pH: pHLevel,
-        slope: slopeLevel,
+        pH: pHLevel ? parseFloat(String(pHLevel).replace(/[^0-9.]/g, '')) || undefined : undefined,
+        slope: slopeLevel ? parseFloat(String(slopeLevel).replace(/[^0-9.]/g, '')) || undefined : undefined,
         clay: clayLevel,
         sand: sandLevel,
         cec: cecLevel,
+        tanaman_id: tanamanId ? tanamanId : undefined,
       });
       handleReset();
       setLandName('');

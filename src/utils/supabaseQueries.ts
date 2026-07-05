@@ -1,5 +1,22 @@
 import { supabase } from './supabaseClient';
-import { Lahan, RiwayatPanen } from '../types';
+import { Lahan, RiwayatPanen, Tanaman } from '../types';
+
+// ==========================================
+// 0. QUERY TANAMAN (Crops)
+// ==========================================
+
+export async function getTanaman(): Promise<Tanaman[]> {
+  const { data, error } = await supabase
+    .from('tanaman')
+    .select('*');
+
+  if (error) {
+    console.error('Gagal mengambil data tanaman:', error.message);
+    return [];
+  }
+
+  return data as Tanaman[];
+}
 
 // ==========================================
 // 1. QUERY LAHAN SAWAH
@@ -30,12 +47,13 @@ export async function getLahans(petaniId: string): Promise<Lahan[]> {
     tipeDrainase: row.tipe_drainase,
     jenisTanah: row.jenis_tanah,
     riwayatHama: row.riwayat_hama,
-    pH: row.ph || undefined,
-    slope: row.slope || undefined,
+    pH: row.ph ? Number(row.ph) : undefined,
+    slope: row.slope ? Number(row.slope) : undefined,
     clay: row.clay ? Number(row.clay) : undefined,
     sand: row.sand ? Number(row.sand) : undefined,
     cec: row.cec ? Number(row.cec) : undefined,
     status: row.status,
+    tanaman_id: row.tanaman_id || undefined,
     varietasDitanam: row.varietas_ditanam || undefined,
     tanggalTanam: row.tanggal_tanam || undefined,
     kebutuhanAirDaily: row.kebutuhan_air_daily ? Number(row.kebutuhan_air_daily) : undefined,
@@ -66,6 +84,7 @@ export async function insertLahan(lahan: Omit<Lahan, 'id' | 'status'>, petaniId:
         clay: lahan.clay || null,
         sand: lahan.sand || null,
         cec: lahan.cec || null,
+        tanaman_id: lahan.tanaman_id || null,
         status: 'kosong'
       }
     ])
@@ -89,11 +108,12 @@ export async function insertLahan(lahan: Omit<Lahan, 'id' | 'status'>, petaniId:
     tipeDrainase: row.tipe_drainase,
     jenisTanah: row.jenis_tanah,
     riwayatHama: row.riwayat_hama,
-    pH: row.ph || undefined,
-    slope: row.slope || undefined,
+    pH: row.ph ? Number(row.ph) : undefined,
+    slope: row.slope ? Number(row.slope) : undefined,
     clay: row.clay ? Number(row.clay) : undefined,
     sand: row.sand ? Number(row.sand) : undefined,
     cec: row.cec ? Number(row.cec) : undefined,
+    tanaman_id: row.tanaman_id || undefined,
     status: row.status
   };
 }
@@ -263,6 +283,7 @@ export async function updateLahanDetails(lahanId: string, lahan: Omit<Lahan, 'id
       clay: lahan.clay || null,
       sand: lahan.sand || null,
       cec: lahan.cec || null,
+      tanaman_id: lahan.tanaman_id || null,
     })
     .eq('id', lahanId);
 

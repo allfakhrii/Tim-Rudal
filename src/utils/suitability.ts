@@ -360,23 +360,27 @@ export function evaluasiTanggalTanamDinamis(
 // DYNAMIC DATABASE EVALUATORS FOR 25 CROPS
 // -------------------------------------------------------------
 
-function parsePH(phStr?: string): number {
-  if (!phStr) return 6.5;
-  if (phStr.includes('< 5.5')) return 5.0;
-  if (phStr.includes('5.5 - 6.5')) return 6.0;
-  if (phStr.includes('6.5 - 7.5')) return 7.0;
-  if (phStr.includes('> 7.5')) return 8.0;
-  const num = parseFloat(phStr);
+function parsePH(phStr?: string | number): number {
+  if (phStr === undefined || phStr === null) return 6.5;
+  if (typeof phStr === 'number') return phStr;
+  const str = String(phStr);
+  if (str.includes('< 5.5')) return 5.0;
+  if (str.includes('5.5 - 6.5')) return 6.0;
+  if (str.includes('6.5 - 7.5')) return 7.0;
+  if (str.includes('> 7.5')) return 8.0;
+  const num = parseFloat(str);
   return isNaN(num) ? 6.5 : num;
 }
 
-function parseSlope(slopeStr?: string): number {
-  if (!slopeStr) return 2.0;
-  if (slopeStr.includes('<3%')) return 1.5;
-  if (slopeStr.includes('3-8%')) return 5.5;
-  if (slopeStr.includes('8-16%')) return 12.0;
-  if (slopeStr.includes('>16%')) return 20.0;
-  const num = parseFloat(slopeStr);
+function parseSlope(slopeStr?: string | number): number {
+  if (slopeStr === undefined || slopeStr === null) return 2.0;
+  if (typeof slopeStr === 'number') return slopeStr;
+  const str = String(slopeStr);
+  if (str.includes('<3%')) return 1.5;
+  if (str.includes('3-8%')) return 5.5;
+  if (str.includes('8-16%')) return 12.0;
+  if (str.includes('>16%')) return 20.0;
+  const num = parseFloat(str);
   return isNaN(num) ? 2.0 : num;
 }
 
