@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { normalizeParameterName } from '@/utils/suitability';
 
 // Initialize Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -103,7 +104,8 @@ export async function GET(
     };
 
     for (const criterion of kriteriaList) {
-      const { parameter, s1_min, s1_max, s2_min, s2_max, s3_min, s3_max, s1_text, s2_text, s3_text } = criterion;
+      const { parameter: rawParameter, s1_min, s1_max, s2_min, s2_max, s3_min, s3_max, s1_text, s2_text, s3_text } = criterion;
+      const parameter = normalizeParameterName(rawParameter);
       
       let val: any = null;
       let label = '';

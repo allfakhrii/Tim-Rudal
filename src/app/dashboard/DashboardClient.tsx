@@ -1475,14 +1475,14 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                             <button
                               type="button"
                               onClick={() => handleStressTestDecision('tetap_tanam')}
-                              className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all text-center cursor-pointer shadow-lg shadow-emerald-600/10"
+                              className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all text-center cursor-pointer shadow-lg shadow-emerald-600/20"
                             >
                               Tetap Tanam Komoditas Ini
                             </button>
                             <button
                               type="button"
                               onClick={() => handleStressTestDecision('pilih_alternatif')}
-                              className="flex-1 py-3 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-all text-center cursor-pointer shadow-lg shadow-orange-600/10"
+                              className="flex-1 py-3 px-4 rounded-xl bg-teal-950/40 hover:bg-teal-900/60 border border-teal-500/30 text-teal-300 text-xs font-bold transition-all text-center cursor-pointer shadow-lg shadow-teal-950/20"
                             >
                               Pilih Alternatif
                             </button>
@@ -1768,23 +1768,48 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  {/* Alternatives */}
-                  {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId && a.evaluasi.skor >= 70).length > 0 && (
+                  {/* Alternatives (Grouped into 3 categories: Green, Yellow, Red) */}
+                  {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId).length > 0 && (
                     <div className="bg-bg-dark border border-border-light rounded-2xl p-5 space-y-4 shadow-md">
                       <h4 className="font-bold text-text-main text-sm flex items-center gap-2 border-b border-white/5 pb-2.5">
                         <TrendingUp className="w-4.5 h-4.5 text-primary" />
-                        <span>Rekomendasi Tanaman Alternatif Terdekat</span>
+                        <span>Analisis Alternatif Komoditas Lainnya</span>
                       </h4>
                       <div className="space-y-3">
                         {(() => {
                           const altFiltered = alternatifList.filter(a => a.tanaman.id !== selectedCropId);
-                          const group90 = altFiltered.filter(a => a.evaluasi.skor >= 90);
-                          const group80 = altFiltered.filter(a => a.evaluasi.skor >= 80 && a.evaluasi.skor < 90);
-                          const group70 = altFiltered.filter(a => a.evaluasi.skor >= 70 && a.evaluasi.skor < 80);
+                          const ijoItems = altFiltered.filter(a => a.evaluasi.skor >= 80);
+                          const kuningItems = altFiltered.filter(a => a.evaluasi.skor >= 50 && a.evaluasi.skor < 80);
+                          const merahItems = altFiltered.filter(a => a.evaluasi.skor < 50);
+
                           const altGroups = [
-                            { id: '90-100', label: 'Sangat Sesuai (Skor 90-100)', items: group90, badgeColor: 'text-green-500 bg-green-500/10' },
-                            { id: '80-89', label: 'Sesuai (Skor 80-89)', items: group80, badgeColor: 'text-emerald-500 bg-emerald-500/10' },
-                            { id: '70-79', label: 'Cukup Sesuai Marginal (Skor 70-79)', items: group70, badgeColor: 'text-yellow-500 bg-yellow-500/10' }
+                            { 
+                              id: 'ijo', 
+                              label: 'Sesuai (Skor 80-100)', 
+                              items: ijoItems, 
+                              badgeColor: 'text-green-500 bg-green-500/10',
+                              borderColor: 'hover:border-green-500/40',
+                              scoreColor: 'text-green-400 bg-green-500/10 border-green-500/20',
+                              buttonColor: 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/20'
+                            },
+                            { 
+                              id: 'kuning', 
+                              label: 'Cukup Sesuai / Marginal (Skor 50-79)', 
+                              items: kuningItems, 
+                              badgeColor: 'text-yellow-500 bg-yellow-500/10',
+                              borderColor: 'hover:border-yellow-500/40',
+                              scoreColor: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+                              buttonColor: 'bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border-yellow-500/20'
+                            },
+                            { 
+                              id: 'merah', 
+                              label: 'Tidak Direkomendasikan (Skor < 50)', 
+                              items: merahItems, 
+                              badgeColor: 'text-red-500 bg-red-500/10',
+                              borderColor: 'hover:border-red-500/40',
+                              scoreColor: 'text-red-400 bg-red-500/10 border-red-500/20',
+                              buttonColor: 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
+                            }
                           ].filter(g => g.items.length > 0);
 
                           return altGroups.map(group => (
@@ -1794,7 +1819,12 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                                 onClick={() => setOpenAltGroup(openAltGroup === group.id ? '' : group.id)}
                                 className="w-full flex items-center justify-between p-3.5 bg-bg-card hover:bg-white/5 transition-colors text-left"
                               >
-                                <span className="font-semibold text-xs text-text-main">{group.label} <span className={`${group.badgeColor} px-2 py-0.5 rounded-full ml-1`}>{group.items.length} opsi</span></span>
+                                <span className="font-semibold text-xs text-text-main">
+                                  {group.label} 
+                                  <span className={`${group.badgeColor} px-2 py-0.5 rounded-full ml-2 text-[10px] font-bold`}>
+                                    {group.items.length} opsi
+                                  </span>
+                                </span>
                                 <ChevronDown className={`w-4 h-4 text-text-muted transition-transform duration-200 ${openAltGroup === group.id ? 'rotate-180' : ''}`} />
                               </button>
                               
@@ -1806,15 +1836,15 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                                     exit={{ height: 0, opacity: 0 }}
                                     className="bg-bg-dark border-t border-border-medium overflow-hidden"
                                   >
-                                    <div className="p-3 space-y-2">
+                                    <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                                       {group.items.map(alt => (
-                                        <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-primary/40 hover:shadow-md transition-all">
+                                        <div key={alt.tanaman.id} className={`flex items-center justify-between p-3 bg-bg-card border border-border-medium rounded-xl text-xs ${group.borderColor} hover:shadow-md transition-all`}>
                                           <div className="space-y-1">
                                             <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
                                             <span className="text-text-muted block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
                                           </div>
                                           <div className="flex items-center gap-4">
-                                            <span className="text-primary/90 font-semibold bg-primary-dark/20 px-2 py-1 rounded border border-primary/20">Kecocokan: {alt.evaluasi.skor}%</span>
+                                            <span className={`${group.scoreColor} font-semibold px-2 py-1 rounded border`}>Kecocokan: {alt.evaluasi.skor}%</span>
                                             <button
                                               type="button"
                                               onClick={() => {
@@ -1822,75 +1852,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                                                 setActiveStep(1);
                                                 handleResetStressTest();
                                               }}
-                                              className="bg-primary hover:bg-primary-dark text-text-inverse shadow-sm hover:shadow-primary/20 font-bold py-1.5 px-3 rounded-lg transition-all text-xs cursor-pointer"
-                                            >
-                                              Pilih
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tanaman yang Tidak Cocok */}
-                  {evalResult.skor < 90 && alternatifList.filter(a => a.tanaman.id !== selectedCropId && a.evaluasi.skor < 70).length > 0 && (
-                    <div className="bg-bg-dark border border-border-light rounded-2xl p-5 space-y-4 shadow-md">
-                      <h4 className="font-bold text-red-400 text-sm flex items-center gap-2 border-b border-white/5 pb-2.5">
-                        <XCircle className="w-4.5 h-4.5 text-red-500" />
-                        <span>Tanaman yang tidak cocok</span>
-                      </h4>
-                      <div className="space-y-3">
-                        {(() => {
-                          const altFiltered = alternatifList.filter(a => a.tanaman.id !== selectedCropId);
-                          const group0_69 = altFiltered.filter(a => a.evaluasi.skor < 70);
-                          const altGroups = [
-                            { id: '0-69', label: 'Tidak Direkomendasikan (Skor < 70)', items: group0_69, badgeColor: 'text-red-500 bg-red-500/10' }
-                          ].filter(g => g.items.length > 0);
-
-                          return altGroups.map(group => (
-                            <div key={group.id} className="border border-border-medium rounded-xl overflow-hidden shadow-sm">
-                              <button
-                                type="button"
-                                onClick={() => setOpenAltGroup(openAltGroup === group.id ? '' : group.id)}
-                                className="w-full flex items-center justify-between p-3.5 bg-bg-card hover:bg-white/5 transition-colors text-left"
-                              >
-                                <span className="font-semibold text-xs text-text-main">{group.label} <span className={`${group.badgeColor} px-2 py-0.5 rounded-full ml-1`}>{group.items.length} opsi</span></span>
-                                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform duration-200 ${openAltGroup === group.id ? 'rotate-180' : ''}`} />
-                              </button>
-                              
-                              <AnimatePresence>
-                                {openAltGroup === group.id && (
-                                  <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="bg-bg-dark border-t border-border-medium overflow-hidden"
-                                  >
-                                    <div className="p-3 space-y-2">
-                                      {group.items.map(alt => (
-                                        <div key={alt.tanaman.id} className="flex items-center justify-between p-3 bg-bg-card border border-border-medium rounded-xl text-xs hover:border-red-500/40 hover:shadow-md transition-all">
-                                          <div className="space-y-1">
-                                            <strong className="text-text-main text-sm block">{alt.tanaman.nama}</strong>
-                                            <span className="text-text-muted block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
-                                          </div>
-                                          <div className="flex items-center gap-4">
-                                            <span className="text-red-400 font-semibold bg-red-500/10 px-2 py-1 rounded border border-red-500/20">Kecocokan: {alt.evaluasi.skor}%</span>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setSelectedCropId(alt.tanaman.id);
-                                                setActiveStep(1);
-                                                handleResetStressTest();
-                                              }}
-                                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 shadow-sm border border-red-500/20 font-bold py-1.5 px-3 rounded-lg transition-all text-xs cursor-pointer"
+                                              className={`${group.buttonColor} shadow-sm border font-bold py-1.5 px-3 rounded-lg transition-all text-xs cursor-pointer`}
                                             >
                                               Pilih
                                             </button>

@@ -260,6 +260,19 @@ export function cariAlternatif(lahan: Lahan): { tanaman: Tanaman; evaluasi: Hasi
   .sort((a, b) => b.evaluasi.skor - a.evaluasi.skor);
 }
 
+export function normalizeParameterName(param: string): string {
+  if (!param) return '';
+  const p = param.toLowerCase().trim();
+  if (p === 'suhu' || p === 'temperatur' || p === 'temperature') return 'temperatur';
+  if (p === 'curah hujan' || p === 'curah_hujan' || p === 'precipitation') return 'curah_hujan';
+  if (p === 'ph' || p === 'ph_tanah' || p === 'ph tanah') return 'ph_tanah';
+  if (p === 'ketinggian' || p === 'elevation' || p === 'altitude') return 'ketinggian';
+  if (p === 'lereng' || p === 'slope' || p === 'kemiringan') return 'lereng';
+  if (p === 'drainase' || p === 'drainage') return 'drainase';
+  if (p === 'tekstur_tanah' || p === 'tekstur' || p === 'tekstur tanah' || p === 'soil_texture') return 'tekstur_tanah';
+  return param;
+}
+
 // Fitur Kalender Tanam: Evaluasi skor tanam harian berdasarkan curah hujan dan suhu
 export function evaluasiTanggalTanam(tanamanId: string, forecast14Hari: { date: string, temperature_2m_mean: number, precipitation_sum: number }[]) {
   const tanaman = TANAMAN_DATABASE.find(t => t.id === tanamanId) || TANAMAN_DATABASE[0];
@@ -297,8 +310,8 @@ export function evaluasiTanggalTanamDinamis(
   }
 
   // Ekstrak kriteria suhu & curah hujan secara dinamis
-  const tempCriterion = cropDb.kriteria_tanaman?.find((c: any) => c.parameter === 'temperatur');
-  const rainCriterion = cropDb.kriteria_tanaman?.find((c: any) => c.parameter === 'curah_hujan');
+  const tempCriterion = cropDb.kriteria_tanaman?.find((c: any) => normalizeParameterName(c.parameter) === 'temperatur');
+  const rainCriterion = cropDb.kriteria_tanaman?.find((c: any) => normalizeParameterName(c.parameter) === 'curah_hujan');
 
   // Fallbacks untuk suhu
   const tempMin = tempCriterion ? (tempCriterion.s3_min ?? tempCriterion.s2_min ?? tempCriterion.s1_min ?? 20) : (cropDb.kebutuhanSuhu?.min ?? 20);
@@ -409,7 +422,8 @@ export function evaluasiLahanDinamis(lahan: Lahan, cropDb: any): HasilEvaluasi {
   let weightedPotentialScore = 0;
   
   for (const criterion of kriteriaList) {
-    const { parameter, s1_min, s1_max, s2_min, s2_max, s3_min, s3_max, s1_text, s2_text, s3_text } = criterion;
+    const { parameter: rawParameter, s1_min, s1_max, s2_min, s2_max, s3_min, s3_max, s1_text, s2_text, s3_text } = criterion;
+    const parameter = normalizeParameterName(rawParameter);
     
     let val: any = null;
     let label = '';
