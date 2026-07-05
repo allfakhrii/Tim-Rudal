@@ -66,7 +66,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
   const [clayLevel, setClayLevel] = useState<number | undefined>(initialLahan?.clay);
   const [sandLevel, setSandLevel] = useState<number | undefined>(initialLahan?.sand);
   const [cecLevel, setCecLevel] = useState<number | undefined>(initialLahan?.cec);
-  const [slopeLevel, setSlopeLevel] = useState<string>(initialLahan?.slope || 'Datar (<3%)');
+  const [slopeLevel, setSlopeLevel] = useState<string>(initialLahan?.slope !== undefined ? String(initialLahan.slope) : 'Datar (<3%)');
   const [isSlopeAutoDetected, setIsSlopeAutoDetected] = useState(false);
   const [isFetchingSlope, setIsFetchingSlope] = useState(false);
   const [detectedSlopePct, setDetectedSlopePct] = useState<string>('');
