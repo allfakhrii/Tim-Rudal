@@ -72,7 +72,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
   const hasShownError = useRef<boolean>(false);
   
   // Custom Map Layer Toggle State
-  const [isSatellite, setIsSatellite] = useState(false);
+  const [isSatellite, setIsSatellite] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Simulated geospasial stats calculated from drawn points
@@ -465,16 +465,14 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
         >
           <TileLayer
             key={isSatellite ? 'sat' : 'osm'}
-            attribution={isSatellite 
-              ? 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-              : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }
+            attribution='&copy; <a href="https://maps.google.com">Google Maps</a>'
             url={isSatellite 
-              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-              : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+              ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+              : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
             }
             maxZoom={22}
-            maxNativeZoom={19}
+            maxNativeZoom={21}
+            detectRetina={true}
           />
           <MapResizer />
           <MapClickHandler setPoints={setPoints} />
