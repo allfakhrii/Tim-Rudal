@@ -96,17 +96,10 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   const [currentView, setCurrentView] = useState<'dashboard' | 'add-lahan' | 'edit-lahan' | 'suitability' | 'monitoring' | 'panen' | 'profile'>('dashboard');
   
   // Theme state removed - app is strictly dark mode
-  const [isScrolled, setIsScrolled] = useState(false);
   
   useEffect(() => {
     document.documentElement.classList.add('dark');
     localStorage.setItem('ecotani_theme', 'dark');
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
   // Selected entities for drill-down
@@ -2703,11 +2696,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
       
       {/* Navbar (Oval Floating - Premium Dark Glass) */}
       <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-        <header className={`w-full max-w-6xl rounded-full px-4 md:px-6 py-2 flex items-center justify-between h-16 transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.8)] shadow-black/80' 
-            : 'bg-white/5 backdrop-blur-xl border border-white/10 shadow-none'
-        }`}>
+        <header className="w-full max-w-6xl bg-white/5 backdrop-blur-xl rounded-full shadow-2xl border border-white/10 px-4 md:px-6 py-2 flex items-center justify-between h-16 transition-all duration-300">
           <div className="flex items-center gap-2 md:gap-3 pl-1 md:pl-2">
             <img src="/assets/logo.webp" alt="EcoTani" className="h-8 w-8 drop-shadow-[0_0_8px_rgba(0,168,89,0.5)]" />
             <span className="font-extrabold text-lg text-white tracking-tight">EcoTani</span>
