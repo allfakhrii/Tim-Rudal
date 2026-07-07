@@ -6,12 +6,13 @@ const swalConfig = {
   background: '#121212',
   color: '#ffffff',
   buttonsStyling: false,
+  width: '300px',
   customClass: {
-    popup: 'bg-[#121212] border border-white/10 rounded-2xl shadow-2xl p-6 max-w-sm md:max-w-md font-sans',
-    title: 'text-lg font-extrabold text-white mb-2 pt-2',
-    htmlContainer: 'text-sm text-gray-300 leading-relaxed mb-4',
-    confirmButton: 'px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer mx-1',
-    cancelButton: 'px-5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-sm font-semibold border border-white/10 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer mx-1'
+    popup: 'bg-[#121212] border border-white/10 rounded-2xl shadow-2xl p-5 font-sans',
+    title: 'text-base font-extrabold text-white mb-2 pt-1',
+    htmlContainer: 'text-xs text-gray-300 leading-relaxed mb-4',
+    confirmButton: 'px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer mx-1',
+    cancelButton: 'px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold border border-white/10 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer mx-1'
   }
 };
 
