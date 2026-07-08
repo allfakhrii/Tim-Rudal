@@ -75,6 +75,46 @@ import { useNotificationSubscription } from '@/hooks/useNotificationSubscription
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
+interface ClimateInsightData {
+  precipitation_change_percent: number | string;
+  extreme_heat_change_percent: number | string;
+}
+
+function generateClimateNarration(insight: ClimateInsightData): string {
+  const pDiff = Number(insight.precipitation_change_percent);
+  const hDiff = Number(insight.extreme_heat_change_percent);
+
+  // 1. Curah Hujan Narasi
+  let rainTrendText = '';
+  let rainImplication = '';
+  if (pDiff > 5) {
+    rainTrendText = `peningkatan curah hujan tahunan sebesar ${Math.abs(Math.round(pDiff))}%`;
+    rainImplication = 'tingkatkan kewaspadaan risiko banjir/genangan terutama di musim hujan, pastikan sistem drainase lahan berfungsi optimal';
+  } else if (pDiff < -5) {
+    rainTrendText = `penurunan curah hujan tahunan sebesar ${Math.abs(Math.round(pDiff))}%`;
+    rainImplication = 'tingkatkan kewaspadaan terhadap risiko kekeringan dan penurunan suplai air, pertimbangkan manajemen penyimpanan air';
+  } else {
+    rainTrendText = 'curah hujan tahunan yang cenderung stabil';
+    rainImplication = 'pola curah hujan terpantau stabil seperti tahun-tahun sebelumnya';
+  }
+
+  // 2. Suhu Ekstrem Narasi
+  let heatTrendText = '';
+  let heatImplication = '';
+  if (hDiff > 5) {
+    heatTrendText = `bertambah ${Math.abs(Math.round(hDiff))}% dari baseline`;
+    heatImplication = 'risiko heat stress pada tanaman relatif meningkat';
+  } else if (hDiff < -5) {
+    heatTrendText = `berkurang ${Math.abs(Math.round(hDiff))}% dari baseline`;
+    heatImplication = 'risiko heat stress pada tanaman relatif menurun';
+  } else {
+    heatTrendText = 'cenderung stabil dari baseline';
+    heatImplication = 'risiko heat stress pada tanaman relatif stabil';
+  }
+
+  return `Wilayah ini menunjukkan ${rainTrendText} dibanding rata-rata periode 1996-2010 — ${rainImplication}. Di sisi lain, hari dengan suhu ekstrem (>33°C) ${heatTrendText}, mengindikasikan ${heatImplication}.`;
+}
+
 interface DashboardClientProps {
   initialUser: any;
 }
@@ -2389,11 +2429,6 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
           {innerTab === 'weather' && (
             <div className="space-y-6">
               <KalenderTanam savedLahans={[selectedLahan]} cropsDbList={cropsList} />
-              
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 text-xs text-amber-300 flex items-center gap-3 shadow-lg">
-                <Lightbulb className="w-5 h-5 text-amber-400 shrink-0" />
-                <p className="leading-relaxed">Dibandingkan rata-rata historis 5 tahun terakhir: <strong className="text-white">+1.2°C lebih panas</strong> akibat pergeseran iklim lokal.</p>
-              </div>
 
               {/* Climate Insight Card */}
               <div className="bg-white/5 border border-white/10 rounded-[24px] p-5 md:p-6 shadow-xl space-y-5">
@@ -2402,15 +2437,23 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                     <TrendingUp className="w-4.5 h-4.5 text-primary" />
                     <span>Insight Iklim Wilayah (30 Tahun Baseline)</span>
                   </h3>
-                  <button
-                    onClick={() => fetchClimateInsight(selectedLahan.id, true)}
-                    disabled={climateLoading}
-                    className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer"
-                    title="Perbarui Analisis"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${climateLoading ? 'animate-spin' : ''}`} />
-                    <span>Perbarui</span>
-                  </button>
+                  
+                  {/* Tooltip wrapper */}
+                  <div className="relative group">
+                    <button
+                      onClick={() => fetchClimateInsight(selectedLahan.id, true)}
+                      disabled={climateLoading}
+                      className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                      title=""
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${climateLoading ? 'animate-spin' : ''}`} />
+                      <span>Perbarui</span>
+                    </button>
+                    {/* Tooltip box */}
+                    <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-bg-dark border border-border-medium text-[10px] text-text-muted rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 leading-relaxed font-normal">
+                      Data diperbarui otomatis secara berkala. Klik untuk memuat ulang secara manual jika diperlukan.
+                    </div>
+                  </div>
                 </div>
 
                 {climateLoading ? (
@@ -2444,7 +2487,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           </span>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
-                          Baseline 1995-2009: {Math.round(Number(climateInsight.avg_precipitation_early_period))} mm/thn.
+                          Periode <span className="text-white font-semibold">2011-2025 (terkini)</span> vs <span className="text-white font-semibold">1996-2010 (baseline)</span>: {Math.round(Number(climateInsight.avg_precipitation_early_period))} mm/thn.
                         </p>
                       </div>
 
@@ -2466,7 +2509,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           </span>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
-                          Baseline 1995-2009: {climateInsight.extreme_heat_days_early_period} hari/thn.
+                          Periode <span className="text-white font-semibold">2011-2025 (terkini)</span> vs <span className="text-white font-semibold">1996-2010 (baseline)</span>: {climateInsight.extreme_heat_days_early_period} hari/thn.
                         </p>
                       </div>
                     </div>
@@ -2474,25 +2517,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                     {/* Automatic Narrative Summary */}
                     <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 text-xs text-primary-light">
                       <p className="leading-relaxed">
-                        {(() => {
-                          const pDiff = Number(climateInsight.precipitation_change_percent);
-                          const hDiff = Number(climateInsight.extreme_heat_change_percent);
-                          const pTrend = pDiff > 5 ? 'peningkatan curah hujan' : pDiff < -5 ? 'penurunan curah hujan' : 'curah hujan yang cenderung stabil';
-                          const hTrend = hDiff > 5 ? 'penambahan hari panas ekstrem' : hDiff < -5 ? 'pengurangan hari panas ekstrem' : 'kondisi suhu ekstrem stabil';
-                          
-                          let implication = 'Implikasi untuk lahan sawah Anda terpantau aman.';
-                          if (pDiff < -5 && hDiff > 5) {
-                            implication = 'Meningkatkan risiko kekeringan dan kekosongan air tanah. Siapkan suplai air tambahan dan pertimbangkan varietas tahan kering.';
-                          } else if (pDiff > 5 && hDiff > 5) {
-                            implication = 'Meningkatkan kelembapan ekstrem dan suhu tinggi, meningkatkan risiko serangan hama penyakit. Optimalkan sirkulasi udara dan drainase sawah.';
-                          } else if (pDiff > 5) {
-                            implication = 'Risiko banjir dan genangan air meningkat pada musim hujan. Pastikan parit dan drainase sawah berfungsi optimal.';
-                          } else if (hDiff > 5) {
-                            implication = 'Suhu panas dapat mempercepat evaporasi. Jadwalkan irigasi pagi/sore hari untuk mengurangi stres panas tanaman.';
-                          }
-
-                          return `Wilayah ini menunjukkan ${pTrend} (${Math.abs(Math.round(pDiff))}% dari baseline) dan ${hTrend} (${Math.abs(Math.round(hDiff))}% dari baseline) dibanding rata-rata historis 30 tahun terakhir. ${implication}`;
-                        })()}
+                        {generateClimateNarration(climateInsight)}
                       </p>
                     </div>
 

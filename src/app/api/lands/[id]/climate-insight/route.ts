@@ -49,8 +49,8 @@ export async function GET(
     const [lat, lng] = centroid;
 
     // 3. Fetch daily historical/projection climate data from Open-Meteo Climate API
-    const start_date = '1995-01-01';
-    const end_date = '2024-12-31';
+    const start_date = '1996-01-01';
+    const end_date = '2025-12-31';
     const climateUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lng}&start_date=${start_date}&end_date=${end_date}&models=MRI_AGCM3_2_S&daily=temperature_2m_mean,temperature_2m_max,precipitation_sum&timezone=Asia%2FJakarta`;
 
     const response = await fetch(climateUrl);
@@ -72,8 +72,8 @@ export async function GET(
       const dateStr = time[i];
       const year = parseInt(dateStr.split('-')[0], 10);
 
-      // Process only complete years within our range (1995 - 2024)
-      if (year >= 1995 && year <= 2024) {
+      // Process only complete years within our range (1996 - 2025)
+      if (year >= 1996 && year <= 2025) {
         if (!annualData[year]) {
           annualData[year] = { precipitation: 0, extremeHeatDays: 0 };
         }
@@ -89,8 +89,8 @@ export async function GET(
     }
 
     // 5. Calculate averages for two 15-year periods
-    // Early Period: 1995 - 2009 (15 years)
-    // Recent Period: 2010 - 2024 (15 years)
+    // Early Period: 1996 - 2010 (15 years)
+    // Recent Period: 2011 - 2025 (15 years)
     let earlyPrecipSum = 0;
     let earlyHeatSum = 0;
     let earlyCount = 0;
@@ -99,7 +99,7 @@ export async function GET(
     let recentHeatSum = 0;
     let recentCount = 0;
 
-    for (let year = 1995; year <= 2009; year++) {
+    for (let year = 1996; year <= 2010; year++) {
       if (annualData[year]) {
         earlyPrecipSum += annualData[year].precipitation;
         earlyHeatSum += annualData[year].extremeHeatDays;
@@ -107,7 +107,7 @@ export async function GET(
       }
     }
 
-    for (let year = 2010; year <= 2024; year++) {
+    for (let year = 2011; year <= 2025; year++) {
       if (annualData[year]) {
         recentPrecipSum += annualData[year].precipitation;
         recentHeatSum += annualData[year].extremeHeatDays;
