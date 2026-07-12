@@ -144,7 +144,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
 
   // Get centroid of coords
   const getCentroid = (coords: [number, number][]): [number, number] => {
-    if (coords.length === 0) return [-7.15, 110.14]; // Default Central Java
+    if (coords.length === 0) return [-2.5489, 118.0148]; // Default Indonesia
     const lats = coords.map(c => c[0]);
     const lngs = coords.map(c => c[1]);
     const avgLat = lats.reduce((sum, val) => sum + val, 0) / coords.length;
@@ -491,8 +491,8 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
 
 
         <MapContainer 
-          center={initialLahan ? initialLahan.centroid : [-7.150, 110.140]} 
-          zoom={initialLahan ? 15 : 10} 
+          center={initialLahan ? initialLahan.centroid : [-2.5489, 118.0148]} 
+          zoom={initialLahan ? 15 : 5} 
           maxZoom={22}
           scrollWheelZoom={true}
           style={{ width: '100%', height: '100%' }}
