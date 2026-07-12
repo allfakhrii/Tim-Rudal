@@ -19,7 +19,11 @@ import {
   CloudLightning,
   Droplets,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Home,
+  Info,
+  CheckCircle2,
+  Settings
 } from 'lucide-react';
 const EcoTaniAnimatedLogo = () => {
   return (
@@ -157,53 +161,49 @@ export default function LandingPage() {
             </button>
           </header>
 
-          {/* Mobile Dropdown Menu (Full Screen Overlay with Crazy Animation) */}
+          {/* Mobile Dropdown Menu (Glassmorphism Bento) */}
           <AnimatePresence>
             {mobileMenuOpen && (
               <motion.div
-                initial={{ opacity: 0, clipPath: 'circle(0% at 90% 10%)' }}
-                animate={{ opacity: 1, clipPath: 'circle(150% at 90% 10%)' }}
-                exit={{ opacity: 0, clipPath: 'circle(0% at 90% 10%)' }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="fixed inset-0 z-[100] bg-[#050505]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6 md:hidden overflow-hidden"
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed top-24 left-4 right-4 z-[100] bg-[#050505]/80 border border-white/10 rounded-3xl backdrop-blur-xl shadow-2xl p-4 md:hidden overflow-hidden origin-top"
               >
-                {/* Crazy Background Grid for Menu */}
-                <div className="absolute inset-0 z-0 opacity-30 pointer-events-none bg-[linear-gradient(to_right,#00a85920_1px,transparent_1px),linear-gradient(to_bottom,#00a85920_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+                {/* Subtle highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-light/10 to-transparent pointer-events-none"></div>
 
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="absolute top-6 right-6 p-3 rounded-full bg-white/5 border border-white/10 text-white hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 transition-all z-50"
-                >
-                  <X className="w-8 h-8" />
-                </button>
-
-                <nav className="flex flex-col items-center gap-8 w-full relative z-10">
-                  {['Beranda', 'Tentang', 'Solusi', 'Cara Kerja'].map((item, i) => {
-                    const hrefs = ['#hero', '#masalah', '#fitur', '#cara-kerja'];
-                    return (
-                      <motion.a
-                        key={item}
-                        href={hrefs[i]}
-                        onClick={() => setMobileMenuOpen(false)}
-                        initial={{ y: 50, opacity: 0, scale: 0.9 }}
-                        animate={{ y: 0, opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 + (i * 0.1), duration: 0.5, type: 'spring', bounce: 0.4 }}
-                        className="text-white font-extrabold text-4xl uppercase tracking-widest hover:text-primary-light hover:scale-110 transition-all cursor-pointer"
-                      >
-                        {item}
-                      </motion.a>
-                    );
-                  })}
+                <nav className="grid grid-cols-2 gap-3 relative z-10 mb-4">
+                  {[
+                    { label: 'Beranda', href: '#hero', icon: <Home className="w-5 h-5 mb-2 text-primary-light" /> },
+                    { label: 'Tentang', href: '#masalah', icon: <Info className="w-5 h-5 mb-2 text-primary-light" /> },
+                    { label: 'Solusi', href: '#fitur', icon: <CheckCircle2 className="w-5 h-5 mb-2 text-primary-light" /> },
+                    { label: 'Cara Kerja', href: '#cara-kerja', icon: <Settings className="w-5 h-5 mb-2 text-primary-light" /> },
+                  ].map((item, i) => (
+                    <motion.a
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + (i * 0.05), duration: 0.4 }}
+                      className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                    >
+                      {item.icon}
+                      <span className="text-white font-bold text-sm tracking-wide">{item.label}</span>
+                    </motion.a>
+                  ))}
                 </nav>
 
                 <motion.div
-                  initial={{ y: 50, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.5 }}
-                  className="flex flex-col gap-4 w-full max-w-xs mt-12 relative z-10"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                  className="flex flex-col gap-3 relative z-10"
                 >
-                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-primary-light bg-primary-light/10 border border-primary-light/30 hover:bg-primary-light hover:text-[#050505] hover:shadow-[0_0_20px_rgba(139,195,74,0.4)] transition-all cursor-pointer">Masuk</Link>
-                  <Link href="/auth?mode=register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-full font-bold text-lg text-center text-[#050505] bg-primary-light hover:bg-primary hover:text-white transition-all shadow-[0_0_20px_rgba(139,195,74,0.4)] cursor-pointer">Daftar</Link>
+                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="w-full py-3.5 rounded-2xl font-bold text-sm text-center text-primary-light bg-primary-light/10 border border-primary-light/20 hover:bg-primary-light/20 transition-all">Masuk</Link>
+                  <Link href="/auth?mode=register" onClick={() => setMobileMenuOpen(false)} className="w-full py-3.5 rounded-2xl font-bold text-sm text-center text-[#050505] bg-primary-light hover:bg-primary transition-all shadow-lg shadow-primary-light/20">Daftar</Link>
                 </motion.div>
               </motion.div>
             )}

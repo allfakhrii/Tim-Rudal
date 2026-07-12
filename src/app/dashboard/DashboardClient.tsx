@@ -3616,8 +3616,8 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
       <footer className="border-t border-white/10 py-6 bg-black/40 text-center text-xs text-text-muted">
         <p>&copy; 2026 EcoTani. Hak Cipta Dilindungi Undang-Undang.</p>
         <p className="mt-1">
-          Developed by Tim EcoTani Indonesia <br className="md:hidden" />
-          <span className="hidden md:inline"> - </span>Telkom University Purwokerto <span className="text-primary font-bold mx-1">X</span> Universitas Jendral Soedirman
+          Developed by <a href="#" className="text-primary-light hover:underline font-extrabold">Tim Rudal</a> <br className="md:hidden" />
+          <span className="hidden md:inline"> | </span>Telkom University Purwokerto <span className="text-emerald-500 font-bold mx-1">X</span> Universitas Jenderal Soedirman
         </p>
       </footer>
 
