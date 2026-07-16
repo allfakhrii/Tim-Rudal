@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import PWAInstallButton from "@/components/PWAInstallButton";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
     <html lang="id" className={cn("h-full scroll-smooth dark", "font-sans", jakarta.variable)}>
       <body className="antialiased bg-bg-dark text-text-main min-h-screen flex flex-col">
         <ServiceWorkerRegister />
+        <PWAInstallButton />
         {children}
       </body>
     </html>

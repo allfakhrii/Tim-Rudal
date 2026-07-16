@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Tambahkan baris ini di dalam objek config kamu:
-  allowedDevOrigins: ['192.168.100.56'],
+const nextConfig: NextConfig = {
+  allowedDevOrigins: ['192.168.100.13', '192.168.1.116'],
 };
 
 export default nextConfig;
