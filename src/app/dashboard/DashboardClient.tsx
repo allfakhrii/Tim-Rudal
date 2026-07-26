@@ -2897,37 +2897,43 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
               <p className="text-xs text-text-muted mt-2 leading-relaxed">
                 Terima pemberitahuan langsung di perangkat Anda ketika ada anomali cuaca ekstrem terdeteksi pada lahan yang Anda tanam.
               </p>
-              {isSubscribed && (
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        if ('serviceWorker' in navigator && 'Notification' in window) {
-                          const registration = await navigator.serviceWorker.ready;
-                          await registration.showNotification('Sistem Peringatan Dini EcoTani', {
-                            body: 'Uji coba notifikasi peringatan cuaca berhasil terhubung dengan perangkat Anda.',
-                            icon: '/assets/logo.webp',
-                            badge: '/assets/logo.webp',
-                            vibrate: [200, 100, 200],
-                            data: { url: '/dashboard' }
-                          });
-                          await showAlertModal('Sukses', 'Notifikasi tes telah dikirim ke perangkat Anda.', 'success');
-                        } else {
-                          await showAlertModal('Gagal', 'Service Worker tidak didukung pada perangkat ini.', 'error');
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if ('serviceWorker' in navigator && 'Notification' in window) {
+                        const perm = Notification.permission;
+                        if (perm !== 'granted') {
+                          const requested = await Notification.requestPermission();
+                          if (requested !== 'granted') {
+                            await showAlertModal('Izin Ditolak', 'Notifikasi diblokir oleh browser. Izinkan notifikasi pada setelan browser Anda.', 'warning');
+                            return;
+                          }
                         }
-                      } catch (err) {
-                        console.error('Test notification error:', err);
-                        await showAlertModal('Gagal', 'Terjadi kesalahan saat mengirim notifikasi tes.', 'error');
+                        const registration = await navigator.serviceWorker.ready;
+                        await registration.showNotification('Sistem Peringatan Dini EcoTani', {
+                          body: 'Uji coba notifikasi peringatan cuaca berhasil terhubung dengan perangkat Anda.',
+                          icon: '/assets/logo.webp',
+                          badge: '/assets/logo.webp',
+                          vibrate: [200, 100, 200],
+                          data: { url: '/dashboard' }
+                        });
+                        await showAlertModal('Sukses', 'Notifikasi tes telah dikirim ke perangkat Anda.', 'success');
+                      } else {
+                        await showAlertModal('Gagal', 'Fitur Notifikasi tidak didukung pada browser atau perangkat ini.', 'error');
                       }
-                    }}
-                    className="w-full py-2.5 px-4 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Bell className="w-3.5 h-3.5" />
-                    <span>Uji Notifikasi Perangkat</span>
-                  </button>
-                </div>
-              )}
+                    } catch (err) {
+                      console.error('Test notification error:', err);
+                      await showAlertModal('Gagal', 'Terjadi kesalahan saat mengirim notifikasi tes.', 'error');
+                    }
+                  }}
+                  className="w-full py-3 px-4 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Bell className="w-4 h-4" />
+                  <span>Kirim Tes Notifikasi Ke HP</span>
+                </button>
+              </div>
             </div>
             
             <div className="flex gap-3 pt-6">
