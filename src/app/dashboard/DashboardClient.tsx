@@ -2912,15 +2912,33 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           }
                         }
                         const registration = await navigator.serviceWorker.ready;
-                        const namaLahan = selectedLahan?.nama || 'Lahan Sawah Utama';
-                        await registration.showNotification('Peringatan Cuaca Ekstrem: Hujan Ekstrem', {
-                          body: `Peringatan Curah Hujan Ekstrem (68 mm) terdeteksi pada ${namaLahan}. Risiko banjir/genangan tinggi! Segera siapkan sistem drainase darurat.`,
+                        
+                        // Smart Check: Cek apakah ada lahan user yang punya anomali cuaca ekstrem aktif
+                        const targetLahan = selectedLahan || activeAlerts[0] || lahans[0];
+                        const namaLahan = targetLahan?.nama || 'Lahan Sawah Utama';
+                        const hasRealAlert = activeAlerts.some(a => targetLahan && a.id === targetLahan.id) || (targetLahan && targetLahan.curahHujan > 250);
+
+                        let notifTitle = '';
+                        let notifBody = '';
+
+                        if (hasRealAlert && targetLahan) {
+                          // Data cuaca nyata dari lahan
+                          notifTitle = `Peringatan Cuaca Ekstrem: Hujan Ekstrem`;
+                          notifBody = `Peringatan Curah Hujan Ekstrem (${targetLahan.curahHujan} mm) terdeteksi pada ${namaLahan}. Risiko banjir/genangan tinggi! Segera siapkan sistem drainase darurat.`;
+                        } else {
+                          // Simulasi pintar dengan nama lahan aktif petani
+                          notifTitle = `Simulasi EWS: Peringatan Cuaca Ekstrem`;
+                          notifBody = `Status ${namaLahan} saat ini Aman. Ini adalah contoh notifikasi EWS jika terdeteksi curah hujan tinggi (>250mm).`;
+                        }
+
+                        await registration.showNotification(notifTitle, {
+                          body: notifBody,
                           icon: '/assets/logo.webp',
                           badge: '/assets/logo.webp',
                           data: { url: '/dashboard' }
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } as any);
-                        await showAlertModal('Sukses', 'Simulasi peringatan cuaca ekstrem telah dikirim ke perangkat Anda.', 'success');
+                        await showAlertModal('Sukses', 'Notifikasi EWS telah dikirim ke perangkat Anda.', 'success');
                       } else {
                         await showAlertModal('Gagal', 'Fitur Notifikasi tidak didukung pada browser atau perangkat ini.', 'error');
                       }
