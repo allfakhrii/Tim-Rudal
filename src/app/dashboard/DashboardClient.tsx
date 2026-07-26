@@ -2923,11 +2923,11 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
 
                         if (hasRealAlert && targetLahan) {
                           // Data cuaca nyata dari lahan
-                          notifTitle = `Peringatan Cuaca Ekstrem: Hujan Ekstrem`;
+                          notifTitle = `Peringatan: Hujan Ekstrem`;
                           notifBody = `Peringatan Curah Hujan Ekstrem (${targetLahan.curahHujan} mm) terdeteksi pada ${namaLahan}. Risiko banjir/genangan tinggi! Segera siapkan sistem drainase darurat.`;
                         } else {
                           // Simulasi pintar dengan nama lahan aktif petani
-                          notifTitle = `Simulasi EWS: Peringatan Cuaca Ekstrem`;
+                          notifTitle = `Peringatan: Hujan Ekstrem (Simulasi)`;
                           notifBody = `Status ${namaLahan} saat ini Aman. Ini adalah contoh notifikasi EWS jika terdeteksi curah hujan tinggi (>250mm).`;
                         }
 
@@ -3723,7 +3723,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                         try {
                           const registration = await navigator.serviceWorker.ready;
                           const namaLahan = selectedLahan?.nama || 'Lahan Sawah Utama';
-                          await registration.showNotification('Peringatan Cuaca Ekstrem: Hujan Ekstrem', {
+                          await registration.showNotification('Peringatan: Hujan Ekstrem', {
                             body: `Peringatan Curah Hujan Ekstrem (68 mm) terdeteksi pada ${namaLahan}. Risiko banjir/genangan tinggi! Segera siapkan sistem drainase darurat.`,
                             icon: '/assets/logo.webp',
                             badge: '/assets/logo.webp',

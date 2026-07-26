@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
                 },
                 body: JSON.stringify({
                   user_id: lahan.petani_id,
-                  title: `Peringatan Cuaca Ekstrem: ${check.type}`,
+                  title: `Peringatan: ${check.type}`,
                   body: check.message,
                   url: `/dashboard`
                 })
