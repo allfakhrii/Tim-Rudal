@@ -2897,6 +2897,37 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
               <p className="text-xs text-text-muted mt-2 leading-relaxed">
                 Terima pemberitahuan langsung di perangkat Anda ketika ada anomali cuaca ekstrem terdeteksi pada lahan yang Anda tanam.
               </p>
+              {isSubscribed && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        if ('serviceWorker' in navigator && 'Notification' in window) {
+                          const registration = await navigator.serviceWorker.ready;
+                          await registration.showNotification('Sistem Peringatan Dini EcoTani', {
+                            body: 'Uji coba notifikasi peringatan cuaca berhasil terhubung dengan perangkat Anda.',
+                            icon: '/assets/logo.webp',
+                            badge: '/assets/logo.webp',
+                            vibrate: [200, 100, 200],
+                            data: { url: '/dashboard' }
+                          });
+                          await showAlertModal('Sukses', 'Notifikasi tes telah dikirim ke perangkat Anda.', 'success');
+                        } else {
+                          await showAlertModal('Gagal', 'Service Worker tidak didukung pada perangkat ini.', 'error');
+                        }
+                      } catch (err) {
+                        console.error('Test notification error:', err);
+                        await showAlertModal('Gagal', 'Terjadi kesalahan saat mengirim notifikasi tes.', 'error');
+                      }
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>Uji Notifikasi Perangkat</span>
+                  </button>
+                </div>
+              )}
             </div>
             
             <div className="flex gap-3 pt-6">
@@ -3661,11 +3692,25 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   <button
                     onClick={async () => {
                       localStorage.setItem('ecotani_push_modal_seen', 'true');
-                      await subscribeToPush();
+                      const ok = await subscribeToPush();
                       setShowPushModal(false);
+                      if (ok && 'serviceWorker' in navigator) {
+                        try {
+                          const registration = await navigator.serviceWorker.ready;
+                          await registration.showNotification('Sistem Peringatan Dini EcoTani', {
+                            body: 'Notifikasi push berhasil diaktifkan. Anda akan menerima peringatan jika terjadi cuaca ekstrem.',
+                            icon: '/assets/logo.webp',
+                            badge: '/assets/logo.webp',
+                            vibrate: [200, 100, 200],
+                            data: { url: '/dashboard' }
+                          });
+                        } catch (err) {
+                          console.error('Error triggering test notification:', err);
+                        }
+                      }
                     }}
                     disabled={notifLoading}
-                    className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm transition-all shadow-lg shadow-primary/20 flex items-center justify-center"
+                    className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm transition-all shadow-lg shadow-primary/20 flex items-center justify-center cursor-pointer"
                   >
                     {notifLoading ? 'Loading...' : 'Aktifkan Notifikasi'}
                   </button>
