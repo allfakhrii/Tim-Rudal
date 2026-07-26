@@ -2912,14 +2912,15 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           }
                         }
                         const registration = await navigator.serviceWorker.ready;
-                        await registration.showNotification('Sistem Peringatan Dini EcoTani', {
-                          body: 'Uji coba notifikasi peringatan cuaca berhasil terhubung dengan perangkat Anda.',
+                        const namaLahan = selectedLahan?.nama || 'Lahan Sawah Utama';
+                        await registration.showNotification('Peringatan Cuaca Ekstrem: Hujan Ekstrem', {
+                          body: `Peringatan Curah Hujan Ekstrem (68 mm) terdeteksi pada ${namaLahan}. Risiko banjir/genangan tinggi! Segera siapkan sistem drainase darurat.`,
                           icon: '/assets/logo.webp',
                           badge: '/assets/logo.webp',
                           data: { url: '/dashboard' }
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } as any);
-                        await showAlertModal('Sukses', 'Notifikasi tes telah dikirim ke perangkat Anda.', 'success');
+                        await showAlertModal('Sukses', 'Simulasi peringatan cuaca ekstrem telah dikirim ke perangkat Anda.', 'success');
                       } else {
                         await showAlertModal('Gagal', 'Fitur Notifikasi tidak didukung pada browser atau perangkat ini.', 'error');
                       }
@@ -2931,7 +2932,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   className="w-full py-3 px-4 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
                   <Bell className="w-4 h-4" />
-                  <span>Kirim Tes Notifikasi Ke HP</span>
+                  <span>Simulasi Peringatan Dini Cuaca</span>
                 </button>
               </div>
             </div>
@@ -3703,8 +3704,9 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                       if (ok && 'serviceWorker' in navigator) {
                         try {
                           const registration = await navigator.serviceWorker.ready;
-                          await registration.showNotification('Sistem Peringatan Dini EcoTani', {
-                            body: 'Notifikasi push berhasil diaktifkan. Anda akan menerima peringatan jika terjadi cuaca ekstrem.',
+                          const namaLahan = selectedLahan?.nama || 'Lahan Sawah Utama';
+                          await registration.showNotification('Peringatan Cuaca Ekstrem: Hujan Ekstrem', {
+                            body: `Peringatan Curah Hujan Ekstrem (68 mm) terdeteksi pada ${namaLahan}. Risiko banjir/genangan tinggi! Segera siapkan sistem drainase darurat.`,
                             icon: '/assets/logo.webp',
                             badge: '/assets/logo.webp',
                             data: { url: '/dashboard' }
