@@ -2916,9 +2916,9 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           body: 'Uji coba notifikasi peringatan cuaca berhasil terhubung dengan perangkat Anda.',
                           icon: '/assets/logo.webp',
                           badge: '/assets/logo.webp',
-                          vibrate: [200, 100, 200],
                           data: { url: '/dashboard' }
-                        });
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        } as any);
                         await showAlertModal('Sukses', 'Notifikasi tes telah dikirim ke perangkat Anda.', 'success');
                       } else {
                         await showAlertModal('Gagal', 'Fitur Notifikasi tidak didukung pada browser atau perangkat ini.', 'error');
@@ -3707,9 +3707,9 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                             body: 'Notifikasi push berhasil diaktifkan. Anda akan menerima peringatan jika terjadi cuaca ekstrem.',
                             icon: '/assets/logo.webp',
                             badge: '/assets/logo.webp',
-                            vibrate: [200, 100, 200],
                             data: { url: '/dashboard' }
-                          });
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          } as any);
                         } catch (err) {
                           console.error('Error triggering test notification:', err);
                         }
