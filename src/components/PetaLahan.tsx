@@ -152,7 +152,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
     return [avgLat, avgLng];
   };
 
-  // Simulated geospatial data based on Central Java coordinates
+  // Real geospatial data (Elevation from Open-Meteo Elevation API)
   useEffect(() => {
     if (points.length >= 3) {
       const lats = points.map(p => p[0]);
@@ -173,33 +173,50 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
       }
       
       const isTooSmall = isTooSmallCoords || luas < 1.0;
-      
-      // Fallback centroid extraction
       const [lat, lng] = getCentroid(points);
-      
-      // Force luas to at least 1 square meter if too small
       const finalLuas = isTooSmall ? Math.max(1, luas) : luas;
 
-      // Elevation simulation: more mountainous in southern central Java (e.g. Dieng, Merbabu)
-      // Lat -7.2 to -7.4 is generally higher elevation
-      const latDiff = Math.abs(lat - (-7.0));
-      const elevationBase = Math.sin(latDiff * 10) * 1200 + 150;
-      const ketinggian = Math.max(10, Math.round(elevationBase + (lng % 0.1) * 3000));
+      const controller = new AbortController();
 
-      // Temperature drops with altitude: lapse rate of 0.65C per 100m
-      const baseTemp = 31.2;
-      const suhu = Math.round((baseTemp - (ketinggian / 100) * 0.65) * 10) / 10;
+      fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`, {
+        signal: controller.signal
+      })
+        .then(res => res.json())
+        .then(data => {
+          let realElevation = 150;
+          if (data && Array.isArray(data.elevation) && data.elevation[0] !== undefined && data.elevation[0] !== null) {
+            realElevation = Math.round(data.elevation[0]);
+          }
 
-      // Rainfall simulation: higher in wet volcanic soils
-      const curahHujan = Math.round(140 + (ketinggian / 10) + (Math.sin(lng * 5) * 40));
+          // Temperature drops with altitude: lapse rate of 0.65C per 100m
+          const baseTemp = 31.2;
+          const suhu = Math.max(-30, Math.min(50, Math.round((baseTemp - (realElevation / 100) * 0.65) * 10) / 10));
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStats({
-        ketinggian: Math.min(2200, Math.max(5, ketinggian)),
-        curahHujan: Math.min(400, Math.max(40, curahHujan)),
-        suhu: Math.min(36, Math.max(12, suhu)),
-        luas: finalLuas
-      });
+          // Rainfall simulation based on real altitude & terrain
+          const curahHujan = Math.max(20, Math.min(800, Math.round(140 + Math.min(350, Math.max(0, realElevation) / 10) + (Math.sin(lng * 5) * 40))));
+
+          setStats({
+            ketinggian: realElevation,
+            curahHujan: curahHujan,
+            suhu: suhu,
+            luas: finalLuas
+          });
+        })
+        .catch(err => {
+          if (err.name !== 'AbortError') {
+            console.warn('Elevation API fallback:', err.message);
+            setStats({
+              ketinggian: 150,
+              curahHujan: 200,
+              suhu: 28,
+              luas: finalLuas
+            });
+          }
+        });
+
+      return () => {
+        controller.abort();
+      };
     } else {
       setStats(null);
     }
@@ -691,7 +708,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Jenis Tanah / Tekstur</label>
                 {isSoilAutoDetected && (
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1 animate-pulse">
-                    ✓ Otomatis (Satelit{clayLevel !== undefined ? `: Clay ${clayLevel}%, Sand ${sandLevel}%` : ''})
+                    <Check className="w-3 h-3 text-emerald-400 shrink-0" /> Otomatis (Satelit{clayLevel !== undefined ? `: Clay ${clayLevel}%, Sand ${sandLevel}%` : ''})
                   </span>
                 )}
               </div>
@@ -715,7 +732,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Tingkat Keasaman (pH)</label>
                 {isAutoDetected && (
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1 animate-pulse">
-                    ✓ Otomatis (Satelit)
+                    <Check className="w-3 h-3 text-emerald-400 shrink-0" /> Otomatis (Satelit)
                   </span>
                 )}
                 {isFetchingPH && (
@@ -744,7 +761,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Kemiringan Lereng (Topografi)</label>
                 {isSlopeAutoDetected && (
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1 animate-pulse">
-                    ✓ Otomatis (Satelit: {detectedSlopePct})
+                    <Check className="w-3 h-3 text-emerald-400 shrink-0" /> Otomatis (Satelit: {detectedSlopePct})
                   </span>
                 )}
                 {isFetchingSlope && (

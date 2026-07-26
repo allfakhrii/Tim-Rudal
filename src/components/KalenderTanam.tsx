@@ -7,7 +7,7 @@ import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Lahan } from '../types';
 import { evaluasiTanggalTanam, TANAMAN_DATABASE, evaluasiTanggalTanamDinamis } from '../utils/suitability';
-import { Calendar as CalendarIcon, MapPin, CloudRain, ThermometerSun, AlertTriangle, CheckCircle2, Sprout, Cloud, Sun, CloudLightning, CloudDrizzle } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, CloudRain, ThermometerSun, AlertTriangle, CheckCircle2, Sprout, Cloud, Sun, CloudLightning, CloudDrizzle, Lightbulb } from 'lucide-react';
 
 interface KalenderTanamProps {
   savedLahans: Lahan[];
@@ -277,8 +277,9 @@ export default function KalenderTanam({ savedLahans, cropsDbList }: KalenderTana
                         )}
                         
                         {selectedEval.landScore !== undefined && selectedEval.landScore < 80 && (
-                          <div className="text-[10px] text-amber-300/90 font-semibold mt-2 leading-normal">
-                            💡 Lahan memiliki batasan fisik (skor {selectedEval.landScore}/100). Periksa tab Overview & Checklist untuk saran mitigasi.
+                          <div className="text-[10px] text-amber-300/90 font-semibold mt-2 leading-normal flex items-start gap-1">
+                            <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                            <span>Lahan memiliki batasan fisik (skor {selectedEval.landScore}/100). Periksa tab Overview & Checklist untuk saran mitigasi.</span>
                           </div>
                         )}
                       </div>
@@ -518,8 +519,9 @@ export default function KalenderTanam({ savedLahans, cropsDbList }: KalenderTana
                           </div>
                         )}
                         {selectedEval.landScore !== undefined && selectedEval.landScore < 80 && (
-                          <div className="text-xs text-amber-300/90 font-semibold mt-2">
-                            💡 Peringatan: Lahan memiliki keterbatasan fisik (skor {selectedEval.landScore}/100). Harap periksa detail kendala dan saran mitigasi di menu Evaluasi Lahan.
+                          <div className="text-xs text-amber-300/90 font-semibold mt-2 flex items-start gap-1.5">
+                            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                            <span>Peringatan: Lahan memiliki keterbatasan fisik (skor {selectedEval.landScore}/100). Harap periksa detail kendala dan saran mitigasi di menu Evaluasi Lahan.</span>
                           </div>
                         )}
                       </div>

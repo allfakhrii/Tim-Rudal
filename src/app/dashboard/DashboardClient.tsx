@@ -63,7 +63,10 @@ import {
   ClipboardCheck,
   Clock,
   X,
-  RefreshCw
+  RefreshCw,
+  Wind,
+  Droplets,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -178,18 +181,15 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
     setClimateError('');
     try {
       const res = await fetch(`/api/lands/${lahanId}/climate-insight${forceRefresh ? '?refresh=true' : ''}`);
-      if (!res.ok) {
-        throw new Error('Gagal mengambil data perubahan iklim.');
-      }
-      const json = await res.json();
-      if (json.success && json.data) {
+      const json = await res.json().catch(() => null);
+      if (json && json.success && json.data) {
         setClimateInsight(json.data);
       } else {
-        throw new Error(json.error || 'Gagal memproses data perubahan iklim.');
+        setClimateError(json?.error || 'Data perubahan iklim belum tersedia untuk wilayah ini.');
       }
     } catch (err: any) {
-      console.error(err);
-      setClimateError(err.message || 'Gagal memuat insight iklim wilayah.');
+      console.warn('Climate insight fetch warning:', err.message);
+      setClimateError('Gagal memuat insight iklim wilayah.');
     } finally {
       setClimateLoading(false);
     }
@@ -204,23 +204,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
     }
   }, [selectedLahan?.id, currentView]);
 
-  useEffect(() => {
-    if (activeAlerts.length > 0) {
-      const activeIds = activeAlerts.map(a => a.id).sort().join(',');
-      const storedIds = localStorage.getItem('ecotani_dismissed_alert_ids');
-      if (storedIds === activeIds) {
-        setIsAlertDismissed(true);
-      } else {
-        setIsAlertDismissed(false);
-      }
-    } else {
-      setIsAlertDismissed(false);
-    }
-  }, [activeAlerts]);
-
   const handleDismissAlert = () => {
-    const activeIds = activeAlerts.map(a => a.id).sort().join(',');
-    localStorage.setItem('ecotani_dismissed_alert_ids', activeIds);
     setIsAlertDismissed(true);
   };
 
@@ -1292,7 +1276,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                         'bg-[#0c0c0c] border-white/10 text-gray-500 hover:border-white/20'
                       }`}
                     >
-                      {isCompleted ? '✓' : s.number}
+                      {isCompleted ? <Check className="w-3.5 h-3.5 text-black stroke-[3]" /> : s.number}
                     </button>
                     <span className={`text-[10px] font-extrabold mt-2.5 hidden sm:inline uppercase tracking-wider ${
                       isActive ? 'text-primary' : isCompleted ? 'text-white' : 'text-gray-500'
@@ -2237,10 +2221,89 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
   }
 
   // ==========================================================================
+  // HELPER: EVALUATE DETAILED LAND WEATHER WARNINGS
+  // ==========================================================================
+  const evaluateDetailedLandWarnings = (lahan: Lahan, weatherData?: any) => {
+    const warnings: {
+      id: string;
+      type: 'hujan' | 'suhu' | 'angin' | 'kekeringan';
+      title: string;
+      badge: string;
+      iconName: 'CloudRain' | 'ThermometerSun' | 'Wind' | 'Droplets' | 'AlertTriangle';
+      description: string;
+      impact: string;
+      recommendations: string[];
+    }[] = [];
+
+    if (!lahan) return warnings;
+
+    const temp = weatherData?.currentTemp ?? weatherData?.suhu ?? lahan.suhu;
+    const rain = weatherData?.curahHujan ?? lahan.curahHujan;
+
+    // 1. Peringatan Hujan Deras / Curah Hujan Ekstrem (Hanya jika curah hujan > 250 mm/bln)
+    if (rain > 250) {
+      warnings.push({
+        id: `hujan_${lahan.id}`,
+        type: 'hujan',
+        title: 'Peringatan Hujan Deras & Curah Hujan Ekstrem',
+        badge: 'Hujan Deras',
+        iconName: 'CloudRain',
+        description: `Curah hujan terpantau sangat tinggi (${rain} mm/bln) pada lahan ini.`,
+        impact: 'Risiko tinggi genangan air di parit bedengan, pencucian nutrisi pupuk tanah, dan kebusukan sistem perakaran.',
+        recommendations: [
+          'Buka katup drainase sawah',
+          'Pemangkasan daun terbawah',
+          'Semprotkan fungisida organik',
+          'Monitor tanggul bedengan'
+        ]
+      });
+    }
+
+    // 2. Peringatan Suhu Panas Ekstrem (Hanya jika suhu > 35°C)
+    if (temp > 35) {
+      warnings.push({
+        id: `suhu_${lahan.id}`,
+        type: 'suhu',
+        title: 'Peringatan Suhu Panas Ekstrem',
+        badge: 'Suhu Panas',
+        iconName: 'ThermometerSun',
+        description: `Suhu udara mencapai ${temp}°C, melampaui rentang ambang ideal pertumbuhan.`,
+        impact: 'Memicu stres penguapan (transpirasi berlebih), kelayuan daun dini, serta kegagalan pembentukan bunga dan buah.',
+        recommendations: [
+          'Irigasi Tambahan Pagi & Sore',
+          'Pemasangan Mulsa Penutup Tanah',
+          'Aplikasi Pupuk Daun Antistres'
+        ]
+      });
+    }
+
+    // 3. Peringatan Angin Kencang & Dataran Tinggi (Hanya jika Ketinggian > 800 mdpl DAN Curah Hujan > 250 mm/bln)
+    if (lahan.ketinggian > 800 && rain > 250) {
+      warnings.push({
+        id: `angin_${lahan.id}`,
+        type: 'angin',
+        title: 'Peringatan Angin Kencang & Dataran Tinggi',
+        badge: 'Angin Kencang',
+        iconName: 'Wind',
+        description: `Ketinggian lahan (${lahan.ketinggian} mdpl) disertai curah hujan ekstrem (${rain} mm/bln) membuat area ini sangat rentan terpaan angin kencang dan cuaca ekstrem.`,
+        impact: 'Risiko tanaman roboh/patah pada masa pembentukan buah, mulsa plastik terkelupas, serta cepatnya penyebaran jamur.',
+        recommendations: [
+          'Pasang tiang penyangga (lanjaran/anjir)',
+          'Kencangkan paku mulsa plastik bedengan',
+          'Periksa pH tanah dari erosi lelehan air'
+        ]
+      });
+    }
+
+    return warnings;
+  };
+
+  // ==========================================================================
   // VIEW: MONITORING & EARLY WARNING SYSTEM
   // ==========================================================================
   if (currentView === 'monitoring' && selectedLahan) {
-    const isExtremeWeather = selectedLahan.ketinggian > 800 && selectedLahan.curahHujan > 250;
+    const detailedWarnings = evaluateDetailedLandWarnings(selectedLahan, liveWeather);
+    const isExtremeWeather = detailedWarnings.length > 0;
 
     const mockTrendData = [
       { name: 'Sen', kelembapan: 75, suhu: 24.2 },
@@ -2278,10 +2341,16 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                 {isExtremeWeather && (
                   <button
                     onClick={() => setInnerTab('checklist')}
-                    className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-full px-2.5 py-0.5 flex items-center gap-1 text-[10px] font-bold cursor-pointer transition-colors"
+                    className="bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-full px-3.5 py-1.5 flex items-center gap-1.5 text-[11px] font-bold cursor-pointer transition-colors"
                   >
                     <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span>⚠️ Peringatan Cuaca (Lihat Checklist)</span>
+                    <span>
+                      Peringatan: {detailedWarnings.length === 1 
+                        ? detailedWarnings[0].badge 
+                        : detailedWarnings.length === 2 
+                        ? `${detailedWarnings[0].badge} & ${detailedWarnings[1].badge}`
+                        : `${detailedWarnings.length} Anomali Cuaca`} (Lihat Checklist)
+                    </span>
                   </button>
                 )}
               </div>
@@ -2440,19 +2509,49 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                 </div>
               </div>
 
-              {/* Emergency Banner if Anomaly is Active */}
-              {isExtremeWeather && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-[24px] p-5 text-xs text-red-300 flex items-center justify-between gap-3 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-                    <p className="leading-relaxed font-semibold">⚠️ Ada tindakan mendesak yang perlu dilakukan — lihat Checklist Pemeliharaan</p>
+              {/* Emergency Banner if Anomaly is Active - Single Clean Card */}
+              {detailedWarnings.length > 0 && (
+                <div className="bg-gradient-to-br from-red-500/15 via-red-500/5 to-black/40 border border-red-500/30 rounded-[28px] p-6 md:p-7 text-xs shadow-2xl space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-red-500/20 pb-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="p-3 bg-red-500/20 rounded-2xl text-red-400 border border-red-500/30 shrink-0 animate-pulse">
+                        <AlertTriangle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-red-400 block mb-0.5">Peringatan Cuaca Ekstrem</span>
+                        <h4 className="font-extrabold text-white text-base md:text-lg tracking-tight">
+                          {detailedWarnings.length === 1 ? detailedWarnings[0].title : `Terdapat ${detailedWarnings.length} Peringatan Cuaca Terdeteksi`}
+                        </h4>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setInnerTab('checklist')}
+                      className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors shrink-0 cursor-pointer shadow-lg hover:shadow-red-500/20 self-start sm:self-auto"
+                    >
+                      Lihat Checklist
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setInnerTab('checklist')}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-[10px] uppercase transition-colors shrink-0 cursor-pointer"
-                  >
-                    Lihat Checklist
-                  </button>
+
+                  <div className="space-y-3.5 pt-1">
+                    {detailedWarnings.map((warn) => {
+                      const IconComp = warn.iconName === 'CloudRain' ? CloudRain :
+                                       warn.iconName === 'ThermometerSun' ? ThermometerSun :
+                                       warn.iconName === 'Wind' ? Wind :
+                                       warn.iconName === 'Droplets' ? Droplets : AlertTriangle;
+
+                      return (
+                        <div key={warn.id} className="flex items-start gap-4 bg-black/40 border border-white/10 p-4 md:p-5 rounded-2xl transition-all hover:border-red-500/30">
+                          <div className="p-2.5 bg-red-500/15 rounded-xl text-red-400 border border-red-500/25 shrink-0 mt-0.5 flex items-center justify-center">
+                            <IconComp className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="space-y-1">
+                            <h5 className="font-bold text-white text-sm tracking-tight">{warn.title}</h5>
+                            <p className="text-gray-300 text-xs leading-relaxed">{warn.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -2591,8 +2690,9 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                       <h3 className="font-bold text-white text-sm flex items-center gap-2 flex-wrap">
                         <CheckCircle2 className={`w-5 h-5 shrink-0 ${isExtremeWeather ? 'text-red-500' : 'text-primary'}`} />
                         {isExtremeWeather && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] bg-red-500/10 text-red-400 border border-red-500/20 font-bold uppercase tracking-wider animate-pulse shrink-0">
-                            🚨 Prioritas Mendesak
+                          <span className="px-2 py-0.5 rounded-full text-[9px] bg-red-500/10 text-red-400 border border-red-500/20 font-bold uppercase tracking-wider animate-pulse shrink-0 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3 text-red-400 shrink-0" />
+                            Prioritas Mendesak
                           </span>
                         )}
                         <span>{isExtremeWeather ? 'Checklist Tindakan Penyelamatan Lahan' : 'Checklist Tindakan Pemeliharaan Rutin'}</span>
@@ -2617,7 +2717,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                     
                     <p className="text-xs text-gray-300 mb-6 leading-relaxed">
                       {isExtremeWeather 
-                        ? `Kami mendeteksi anomali cuaca berupa curah hujan ekstrim (${selectedLahan.curahHujan} mm/bln) di ketinggian lahan ${selectedLahan.ketinggian} mdpl. Jalankan rekomendasi taktis berikut segera:`
+                        ? `Anomali cuaca terdeteksi (${detailedWarnings.map(w => w.badge).join(', ')}). Jalankan rekomendasi taktis penyelamatan berikut segera:`
                         : `Kondisi curah hujan (${selectedLahan.curahHujan} mm/bln) dan suhu udara (${selectedLahan.suhu}°C) stabil di batas optimal. Jalankan perawatan harian berikut untuk memaksimalkan pertumbuhan varietas ${selectedLahan.varietasDitanam}:`}
                     </p>
 
@@ -3035,23 +3135,6 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
               <div className="flex items-end gap-3 flex-wrap">
                 <strong className="text-5xl md:text-6xl font-extrabold text-white tracking-tighter leading-none">{lahans.length}</strong>
                 <span className="text-lg text-gray-400 font-medium mb-1">Bidang Aktif</span>
-                
-                {/* Active danger badge/counter */}
-                {activeAlerts.length > 0 && (
-                  <button
-                    onClick={() => {
-                      const element = document.getElementById('daftar-lahan-section');
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
-                    className="ml-3 mb-1 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer animate-pulse transition-all hover:scale-105"
-                    title="Klik untuk langsung melihat lahan yang sedang anomali cuaca"
-                  >
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                    <span>{activeAlerts.length} Bahaya</span>
-                  </button>
-                )}
               </div>
             </div>
             
@@ -3240,12 +3323,22 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                           <span className="text-text-muted">Estimasi Panen:</span>
                           <strong className="text-orange-400">{lahan.estimasiPanenDate}</strong>
                         </div>
-                        {isExtreme && (
-                          <div className="bg-red-500/15 border border-red-500/30 text-red-400 p-2 rounded-lg flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                            <span>Terdeteksi Anomali Cuaca Dingin & Lembab</span>
-                          </div>
-                        )}
+                        {(() => {
+                          const landWarnings = evaluateDetailedLandWarnings(lahan);
+                          if (landWarnings.length === 0) return null;
+                          const badgeText = landWarnings.length === 1 
+                            ? landWarnings[0].badge 
+                            : landWarnings.length === 2 
+                            ? `${landWarnings[0].badge} & ${landWarnings[1].badge}`
+                            : `${landWarnings.length} Anomali Cuaca`;
+
+                          return (
+                            <div className="bg-red-500/15 border border-red-500/30 text-red-400 p-2.5 rounded-xl flex items-center gap-2 mt-2">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider truncate">Terdeteksi: {badgeText}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
