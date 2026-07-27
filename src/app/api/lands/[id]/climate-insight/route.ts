@@ -12,7 +12,7 @@ export async function GET(
 
     const supabase = await createClient();
 
-    // 1. If not forcing refresh, try to read cached insight from database
+    // 1. Jika tidak memaksa refresh, coba baca data cache dari database
     if (!refresh) {
       const { data: cached, error: cacheErr } = await supabase
         .from('climate_insights')
@@ -25,7 +25,7 @@ export async function GET(
       }
     }
 
-    // 2. Fetch land details to get GPS coordinates (centroid)
+    // 2. Ambil detail lahan untuk mendapatkan koordinat GPS (centroid)
     const { data: land, error: landError } = await supabase
       .from('lahan')
       .select('id, centroid')
@@ -48,7 +48,7 @@ export async function GET(
     }
     const [lat, lng] = centroid;
 
-    // 3. Fetch daily historical/projection climate data from Open-Meteo Climate API
+    // 3. Ambil data iklim harian (historis/proyeksi) dari Open-Meteo Climate API
     const start_date = '1996-01-01';
     const end_date = '2025-12-31';
     const climateUrl = `https://climate-api.open-meteo.com/v1/climate?latitude=${lat}&longitude=${lng}&start_date=${start_date}&end_date=${end_date}&models=MRI_AGCM3_2_S&daily=temperature_2m_mean,temperature_2m_max,precipitation_sum&timezone=Asia%2FJakarta`;
@@ -63,7 +63,7 @@ export async function GET(
       console.warn('[CLIMATE API NETWORK ERROR]', e.message);
     }
 
-    // Helper for fallback response
+    // Helper untuk respon fallback saat API mengalami kendala
     const getFallbackData = async () => {
       const { data: cached } = await supabase
         .from('climate_insights')
@@ -109,7 +109,7 @@ export async function GET(
       }))
     );
 
-    // Calculate min and max temperature found
+    // Hitung suhu minimal dan maksimal yang terdeteksi
     let minTemp = Infinity;
     let maxTemp = -Infinity;
     for (let i = 0; i < temperature_2m_max.length; i++) {
@@ -121,7 +121,7 @@ export async function GET(
     }
     console.log('[DEBUG CLIMATE API] Rentang Suhu Terdeteksi:', { minTemp, maxTemp });
 
-    // 4. Process daily data into annual aggregates
+    // 4. Olah data harian menjadi agregasi tahunan
     const annualData: Record<number, { precipitation: number; extremeHeatDays: number }> = {};
     const threshold = 33;
     let totalExceedingDays = 0;
@@ -130,7 +130,7 @@ export async function GET(
       const dateStr = time[i];
       const year = parseInt(dateStr.split('-')[0], 10);
 
-      // Process only complete years within our range (1996 - 2025)
+      // Olah tahun yang lengkap dalam rentang 1996 - 2025
       if (year >= 1996 && year <= 2025) {
         if (!annualData[year]) {
           annualData[year] = { precipitation: 0, extremeHeatDays: 0 };
@@ -153,9 +153,9 @@ export async function GET(
       totalDaysParsed: time.length
     });
 
-    // 5. Calculate averages for two 15-year periods
-    // Early Period: 1996 - 2010 (15 years)
-    // Recent Period: 2011 - 2025 (15 years)
+    // 5. Hitung rata-rata untuk dua periode 15 tahun
+    // Periode Awal: 1996 - 2010 (15 tahun)
+    // Periode Terbaru: 2011 - 2025 (15 tahun)
     let earlyPrecipSum = 0;
     let earlyHeatSum = 0;
     let earlyCount = 0;
@@ -188,7 +188,7 @@ export async function GET(
     const avgHeatRecent = recentCount > 0 ? recentHeatSum / recentCount : 0;
     const heatChange = avgHeatEarly > 0 ? ((avgHeatRecent - avgHeatEarly) / avgHeatEarly) * 100 : (avgHeatRecent > 0 ? 100 : 0);
 
-    // 6. Cache processed data to database (upsert)
+    // 6. Simpan data hasil olahan ke cache database
     const { data: saved, error: saveErr } = await supabase
       .from('climate_insights')
       .upsert({
@@ -206,7 +206,7 @@ export async function GET(
 
     if (saveErr) {
       console.error('Gagal menyimpan cache climate insight:', saveErr.message);
-      // Return the data directly to the client even if cache insert failed (resilience)
+      // Kembalikan data langsung ke klien meskipun gagal menyimpan cache (resiliensi)
       return NextResponse.json({
         success: true,
         data: {

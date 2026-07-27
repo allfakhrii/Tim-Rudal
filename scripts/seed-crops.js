@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-// 1. Load Environment Variables from .env.local
-const envPath = path.join(__dirname, '.env.local');
+// 1. Memuat Environment Variables dari .env.local di root
+const envPath = path.join(__dirname, '..', '.env.local');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
   envContent.split(/\r?\n/).forEach(line => {
@@ -29,7 +29,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Helper to parse numeric ranges and operators
+// Fungsi pembantu untuk memproses rentang angka dan operator
 function parseRange(val) {
   if (!val) return { min: null, max: null };
   
@@ -65,7 +65,7 @@ function parseRange(val) {
   return { min: null, max: null };
 }
 
-// 2. Load Crops Seed JSON
+// 2. Memuat data tanaman dari scripts/crops-seed.json
 const seedFilePath = path.join(__dirname, 'crops-seed.json');
 if (!fs.existsSync(seedFilePath)) {
   console.error(`Error: Seed file not found at ${seedFilePath}`);
@@ -100,53 +100,47 @@ async function seed() {
         console.log(`Crop '${cropName}' already exists with ID: ${tanamanId}. Updating criteria...`);
       } else {
         // Insert new crop
-        const { data: insertedCrops, error: insertError } = await supabase
+        const { data: insertedCrop, error: insertError } = await supabase
           .from('tanaman')
-          .insert([
-            {
-              nama: cropName,
-              nama_latin: latinName,
-              siklus_tanam_days: 120 // Default harvest cycle fallback
-            }
-          ])
-          .select();
+          .insert({
+            nama: cropName,
+            nama_latin: latinName,
+            kategori: crop.kategori || 'Tanaman Pangan',
+            deskripsi: crop.deskripsi || null,
+            lama_tanam_hari: crop.masa_tanam_hari || 120,
+            potensi_hasil_ton_ha: crop.potensi_hasil_ton_ha || 5,
+            harga_per_kg: crop.harga_pasar_per_kg || 5000,
+          })
+          .select('id')
+          .single();
 
         if (insertError) {
           console.error(`Failed to insert crop '${cropName}':`, insertError.message);
           continue;
         }
 
-        tanamanId = insertedCrops[0].id;
-        console.log(`Created new crop record '${cropName}' with ID: ${tanamanId}`);
+        tanamanId = insertedCrop.id;
+        console.log(`Created crop '${cropName}' with ID: ${tanamanId}.`);
       }
 
-      // B. Build criteria rules
+      // B. Parse & insert/update suitability criteria (kriteria_tanaman)
       const criteriaList = [];
-      const kriteriaTumbuh = crop.kriteria_tumbuh || {};
+      const paramKeys = ['suhu', 'curah_hujan', 'ph', 'kemiringan', 'tekstur', 'ktk'];
 
-      for (const [parameterName, paramVal] of Object.entries(kriteriaTumbuh)) {
-        if (!paramVal) continue;
+      for (const param of paramKeys) {
+        if (!crop[param]) continue;
 
-        const isTextBased = ['drainase', 'tekstur_tanah'].includes(parameterName);
-
-        let row = {
+        const paramVal = crop[param];
+        const row = {
           tanaman_id: tanamanId,
-          parameter: parameterName,
-          s1_min: null,
-          s1_max: null,
-          s2_min: null,
-          s2_max: null,
-          s3_min: null,
-          s3_max: null,
-          s1_text: null,
-          s2_text: null,
-          s3_text: null
+          parameter: param,
+          bobot: param === 'suhu' || param === 'curah_hujan' || param === 'ph' ? 20 : 10,
         };
 
-        if (isTextBased) {
-          row.s1_text = Array.isArray(paramVal.S1) ? paramVal.S1 : (paramVal.S1 ? [paramVal.S1] : null);
-          row.s2_text = Array.isArray(paramVal.S2) ? paramVal.S2 : (paramVal.S2 ? [paramVal.S2] : null);
-          row.s3_text = Array.isArray(paramVal.S3) ? paramVal.S3 : (paramVal.S3 ? [paramVal.S3] : null);
+        if (param === 'tekstur') {
+          row.tekstur_s1 = Array.isArray(paramVal.S1) ? paramVal.S1.join(',') : (paramVal.S1 || '');
+          row.tekstur_s2 = Array.isArray(paramVal.S2) ? paramVal.S2.join(',') : (paramVal.S2 || '');
+          row.tekstur_s3 = Array.isArray(paramVal.S3) ? paramVal.S3.join(',') : (paramVal.S3 || '');
         } else {
           const s1Range = parseRange(paramVal.S1);
           const s2Range = parseRange(paramVal.S2);

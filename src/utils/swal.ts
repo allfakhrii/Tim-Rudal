@@ -1,7 +1,7 @@
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
-// Reusable SweetAlert2 customization for EcoTani Dark Mode
+// Kustomisasi SweetAlert2 untuk Mode Gelap EcoTani
 const swalConfig = {
   background: '#121212',
   color: '#ffffff',
@@ -17,10 +17,10 @@ const swalConfig = {
 };
 
 /**
- * Display a premium themed alert popup.
- * @param title Title of the alert
- * @param text Description content
- * @param icon SweetAlert2 icon type ('success' | 'error' | 'warning' | 'info' | 'question')
+ * Menampilkan popup notifikasi dengan tema khusus EcoTani.
+ * @param title Judul notifikasi
+ * @param text Isi pesan notifikasi
+ * @param icon Tipe ikon SweetAlert2 ('success' | 'error' | 'warning' | 'info' | 'question')
  */
 export const showAlertModal = async (
   title: string, 
@@ -36,12 +36,12 @@ export const showAlertModal = async (
 };
 
 /**
- * Display a premium confirmation modal returning a boolean.
- * @param title Confirmation title
- * @param text Description content
- * @param confirmText Positive button text
- * @param cancelText Negative button text
- * @returns Promise resolving to true if confirmed, false otherwise
+ * Menampilkan dialog konfirmasi dengan pengembalian nilai boolean.
+ * @param title Judul konfirmasi
+ * @param text Deskripsi konfirmasi
+ * @param confirmText Teks tombol konfirmasi
+ * @param cancelText Teks tombol pembatalan
+ * @returns Promise boolean true jika disetujui, false jika dibatalkan
  */
 export const showConfirmModal = async (
   title: string, 

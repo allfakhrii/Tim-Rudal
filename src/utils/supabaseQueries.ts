@@ -34,7 +34,7 @@ export async function getLahans(petaniId: string): Promise<Lahan[]> {
     return [];
   }
 
-  // Map database snake_case fields to frontend camelCase model
+  // Pemetaan field database snake_case ke model frontend camelCase
   return (data || []).map(row => ({
     id: row.id,
     nama: row.nama,
@@ -347,7 +347,7 @@ export async function getTodayActivityLogs(landId: string): Promise<any[]> {
 export async function upsertActivityLog(landId: string, activityName: string, isCompleted: boolean): Promise<boolean> {
   const today = new Date().toISOString().split('T')[0];
   
-  // Check if entry exists for today
+  // Cek apakah catatan aktivitas sudah ada untuk hari ini
   const { data: existing, error: fetchError } = await supabase
     .from('activity_logs')
     .select('id')
@@ -362,7 +362,7 @@ export async function upsertActivityLog(landId: string, activityName: string, is
   }
 
   if (existing && existing.length > 0) {
-    // Update
+    // Perbarui data log yang ada
     const { error } = await supabase
       .from('activity_logs')
       .update({ is_completed: isCompleted })
@@ -373,7 +373,7 @@ export async function upsertActivityLog(landId: string, activityName: string, is
       return false;
     }
   } else {
-    // Insert
+    // Buat data log baru
     const { error } = await supabase
       .from('activity_logs')
       .insert([

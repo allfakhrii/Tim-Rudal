@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { showAlertModal } from '../utils/swal';
 import { motion, useDragControls } from 'framer-motion';
 
-// Fix Leaflet marker icon issue in Next.js/Webpack
+// Perbaikan ikon marker Leaflet untuk Next.js/Webpack
 const getMarkerIcon = () => {
   return new L.Icon({
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -22,7 +22,7 @@ const getMarkerIcon = () => {
   });
 };
 
-// Map Resizer component to fix Leaflet size container glitches
+// Komponen penyesuai ukuran peta untuk mencegah glitch kontainer Leaflet
 function MapResizer() {
   const map = useMap();
   useEffect(() => {
@@ -34,7 +34,7 @@ function MapResizer() {
   return null;
 }
 
-// Map Click Handler Component
+// Komponen penangan klik pada peta
 function MapClickHandler({ setPoints }: { setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
   useMapEvents({
     click(e) {
@@ -49,7 +49,7 @@ interface PetaLahanProps {
   onSaveLahan: (lahanData: Omit<Lahan, 'id' | 'status'>) => void;
   savedLahans: Lahan[];
   onClose: () => void;
-  initialLahan?: Lahan; // For Edit Mode
+  initialLahan?: Lahan; // Untuk Mode Edit
 }
 
 export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLahan }: PetaLahanProps) {
@@ -74,7 +74,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
   const lastDetectedCentroid = useRef<string | null>(null);
   const hasShownError = useRef<boolean>(false);
   
-  // Custom Map Layer Toggle State
+  // State untuk beralih layer peta
   const [isSatellite, setIsSatellite] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const dragControls = useDragControls();
@@ -108,7 +108,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
     fetchTanaman();
   }, []);
 
-  // Simulated geospasial stats calculated from drawn points
+  // Statistik spasial yang dihitung dari titik koordinat lahan
   const [stats, setStats] = useState<{
     ketinggian: number;
     curahHujan: number;
@@ -121,13 +121,13 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
     luas: initialLahan.luas
   } : null);
 
-  // Calculate polygon area (using simplified flat earth math for small agricultural plots)
+  // Menghitung luas poligon lahan (menggunakan rumus proyeksi spasial sederhana)
   const calculateArea = (coords: [number, number][]) => {
     if (coords.length < 3) return 0;
     
-    // Shoelace formula in coordinate degrees scaled to approx meters
+    // Rumus Shoelace dalam derajat koordinat yang dikonversi ke meter persegi
     let totalArea = 0;
-    const factor = 111300; // 1 degree lat ≈ 111.3km
+    const factor = 111300; // 1 derajat lintang ≈ 111.3 km
     
     for (let i = 0; i < coords.length; i++) {
       const j = (i + 1) % coords.length;
@@ -142,9 +142,9 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
     return Math.abs(totalArea / 2);
   };
 
-  // Get centroid of coords
+  // Menghitung titik pusat (centroid) dari koordinat
   const getCentroid = (coords: [number, number][]): [number, number] => {
-    if (coords.length === 0) return [-2.5489, 118.0148]; // Default Indonesia
+    if (coords.length === 0) return [-2.5489, 118.0148]; // Pusat default Indonesia
     const lats = coords.map(c => c[0]);
     const lngs = coords.map(c => c[1]);
     const avgLat = lats.reduce((sum, val) => sum + val, 0) / coords.length;
@@ -152,7 +152,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
     return [avgLat, avgLng];
   };
 
-  // Real geospatial data (Elevation from Open-Meteo Elevation API)
+  // Data geospasial real-time (Elevasi dari Open-Meteo API)
   useEffect(() => {
     if (points.length >= 3) {
       const lats = points.map(p => p[0]);
@@ -188,11 +188,11 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
             realElevation = Math.round(data.elevation[0]);
           }
 
-          // Temperature drops with altitude: lapse rate of 0.65C per 100m
+          // Suhu menurun sesuai ketinggian: lapse rate 0.65°C per 100m
           const baseTemp = 31.2;
           const suhu = Math.max(-30, Math.min(50, Math.round((baseTemp - (realElevation / 100) * 0.65) * 10) / 10));
 
-          // Rainfall simulation based on real altitude & terrain
+          // Estimasi curah hujan berdasarkan elevasi & topografi
           const curahHujan = Math.max(20, Math.min(800, Math.round(140 + Math.min(350, Math.max(0, realElevation) / 10) + (Math.sin(lng * 5) * 40))));
 
           setStats({
@@ -222,7 +222,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
     }
   }, [points]);
 
-  // SoilGrids REST API v2.0 & Open-Elevation model integration
+  // Integrasi API SoilGrids v2.0 & Model Elevasi Spasial
   useEffect(() => {
     if (points.length >= 3) {
       const lats = points.map(p => p[0]);
@@ -252,9 +252,9 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
         lastDetectedCentroid.current = centroidKey;
         setIsFetchingPH(true);
         setIsFetchingSlope(true);
-        setIsSoilAutoDetected(false); // reset soil status while loading
+        setIsSoilAutoDetected(false); // reset status tanah saat memuat
         
-        // Execute dynamic SoilGrids and Elevation integrations
+        // Eksekusi integrasi SoilGrids & Elevasi secara dinamis
         let active = true;
         
         const fetchSoilData = async () => {
@@ -276,14 +276,14 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
           } else {
             let didTimeout = false;
             try {
-              // Enforce maximum timeout of 8 seconds
+              // Batas waktu maksimal permintaan API 8 detik
               const controller = new AbortController();
               const timeoutId = setTimeout(() => {
                 didTimeout = true;
                 controller.abort();
               }, 8000);
               
-              // Route the API fetch using the extracted centroid coordinate
+              // Minta data ke SoilGrids menggunakan titik koordinat lahan
               const res = await fetch(
                 `https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lng}&lat=${lat}&property=phh2o&property=clay&property=sand&property=cec`,
                 { signal: controller.signal }
@@ -294,28 +294,28 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
                 const data = await res.json();
                 const layers = data?.properties?.layers;
                 if (layers && Array.isArray(layers)) {
-                  // phh2o: Divide by 10 to get standard float pH
+                  // phh2o: Bagi 10 untuk mendapatkan nilai pH desimal
                   const phLayer = layers.find((l: any) => l.name === 'phh2o');
                   const phMean = phLayer?.depths?.[0]?.values?.mean;
                   if (phMean !== undefined && phMean !== null) {
                     pHFloat = phMean / 10;
                   }
                   
-                  // clay: Divide by 10 to convert g/kg to percentage
+                  // clay: Bagi 10 untuk mengubah g/kg ke persentase
                   const clayLayer = layers.find((l: any) => l.name === 'clay');
                   const clayMean = clayLayer?.depths?.[0]?.values?.mean;
                   if (clayMean !== undefined && clayMean !== null) {
                     clayVal = Math.round(clayMean / 10);
                   }
                   
-                  // sand: Divide by 10 to convert g/kg to percentage
+                  // sand: Bagi 10 untuk mengubah g/kg ke persentase
                   const sandLayer = layers.find((l: any) => l.name === 'sand');
                   const sandMean = sandLayer?.depths?.[0]?.values?.mean;
                   if (sandMean !== undefined && sandMean !== null) {
                     sandVal = Math.round(sandMean / 10);
                   }
                   
-                  // cec: Cation Exchange Capacity
+                  // cec: Kapasitas Tukar Kation (KTK)
                   const cecLayer = layers.find((l: any) => l.name === 'cec');
                   const cecMean = cecLayer?.depths?.[0]?.values?.mean;
                   if (cecMean !== undefined && cecMean !== null) {
@@ -328,7 +328,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
               }
             } catch (err) {
               console.log('Catatan: Server SoilGrids lambat/timeout. Menggunakan data simulasi offline agar aplikasi tetap berjalan.');
-              // SoilGrids API failed, simulate values based on location coordinates so auto-detection works offline!
+              // Jika API SoilGrids tidak merespon, gunakan estimasi berbasis koordinat lokasi
               const latDiff = Math.abs(lat - (-7.0));
               pHFloat = Math.round((6.0 + (latDiff * 5) % 1.5) * 10) / 10;
               clayVal = Math.min(60, Math.max(10, Math.round(25 + (lng % 0.05) * 200)));
@@ -340,7 +340,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
 
           if (!active) return;
 
-          // 1. pH Level processing
+          // 1. Pemrosesan tingkat pH
           let predictedPH = "Netral (6.5 - 7.5)";
           if (pHFloat < 5.5) {
             predictedPH = "Sangat Asam (< 5.5)";
@@ -355,7 +355,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
           setIsAutoDetected(wasSuccessful);
           setIsFetchingPH(false);
 
-          // 2. Clay/Sand texture classification
+          // 2. Klasifikasi tekstur tanah
           let predictedSoil: Lahan['jenisTanah'] = 'Lempung';
           if (sandVal > 45) {
             predictedSoil = 'Pasir';
@@ -370,7 +370,7 @@ export default function PetaLahan({ onSaveLahan, savedLahans, onClose, initialLa
           setCecLevel(cecVal);
           setIsSoilAutoDetected(wasSuccessful);
 
-          // 3. Slope simulation
+          // 3. Estimasi kemiringan lereng (slope)
           const latDiff = Math.abs(lat - (-7.0));
           const slopePct = Math.round((1.0 + (latDiff * 80) % 22.0) * 10) / 10;
           

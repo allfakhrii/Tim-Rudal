@@ -30,14 +30,14 @@ export default function KalenderTanam({ savedLahans, cropsDbList }: KalenderTana
     ? cropsDbList.find(c => c.id === selectedTanaman)
     : TANAMAN_DATABASE.find(t => t.id === selectedTanaman);
 
-  // Set default selected crop from cropsDbList if loaded
+  // Tetapkan komoditas default yang dipilih jika database komoditas telah dimuat
   useEffect(() => {
     if (cropsDbList && cropsDbList.length > 0 && !cropsDbList.find(c => c.id === selectedTanaman)) {
       setSelectedTanaman(cropsDbList[0].id);
     }
   }, [cropsDbList, selectedTanaman]);
 
-  // Set matching crop for single nested land layout
+  // Tetapkan komoditas yang sesuai untuk tata letak lahan tunggal
   useEffect(() => {
     if (savedLahans.length === 1 && savedLahans[0].varietasDitanam && cropsDbList && cropsDbList.length > 0) {
       const match = cropsDbList.find(c => c.nama.toLowerCase() === savedLahans[0].varietasDitanam?.toLowerCase());
@@ -52,7 +52,7 @@ export default function KalenderTanam({ savedLahans, cropsDbList }: KalenderTana
       setSelectedLahanId(savedLahans[0].id);
     }
 
-    // Fetch real-time weather for ALL lahans
+    // Mengambil data cuaca real-time untuk seluruh daftar lahan
     const fetchAllWeather = async () => {
       const weathers: Record<string, { temp: number, desc: string }> = {};
       
@@ -330,7 +330,7 @@ export default function KalenderTanam({ savedLahans, cropsDbList }: KalenderTana
     );
   }
 
-  // Fallback layout when not nested (more than one land)
+  // Tampilan alternatif jika terdapat lebih dari satu lahan
   return (
     <div className="space-y-6">
       <div className="bg-bg-card border border-border-medium rounded-2xl p-6">

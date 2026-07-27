@@ -1,12 +1,13 @@
 {
-  "name": "temp-next-app",
+  "name": "ecotani-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node scripts/seed-crops.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

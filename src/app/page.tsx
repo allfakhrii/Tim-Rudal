@@ -279,7 +279,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.8, delay: 0.1 }}
                 className="text-white font-extrabold text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight mb-6 max-w-3xl"
               >
-                Sawah Terlindungi, <br />
+                Lahan Tani Terlindungi, <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light via-primary to-[#8bc34a] drop-shadow-sm">
                   Panen Melimpah.
                 </span> <br /> Secara Presisi.
@@ -292,7 +292,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="text-text-muted text-sm md:text-lg mb-10 max-w-2xl leading-relaxed"
               >
-                Platform pemantauan sawah cerdas bertenaga geospasial real-time. Deteksi kelayakan tanam, simulasikan risiko iklim ekstrem, dan amankan ketahanan pangan Anda.
+                Platform pemantauan lahan tani cerdas berbasis data geospasial real-time. Deteksi kelayakan tanam, simulasikan risiko iklim ekstrem, dan amankan ketahanan pangan Anda.
               </motion.p>
 
               {/* Email Signup Form */}
@@ -352,13 +352,13 @@ export default function LandingPage() {
                 <h2 className="text-white font-extrabold text-3xl md:text-5xl leading-[1.1] tracking-tight mb-6">
                   Perubahan Iklim Nyata, <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-light to-[#8bc34a]">
-                    Petani Tidak Boleh Sendirian
+                    Petani Tak Perlu Hadapi Sendirian
                   </span>
                 </h2>
               </div>
               <div className="lg:col-span-6">
                 <p className="text-text-muted text-base md:text-lg leading-relaxed border-l-2 border-primary-light/30 pl-6">
-                  Sektor pertanian adalah yang paling rentan terdampak oleh krisis iklim. Pola cuaca yang tidak menentu, pergeseran musim tanam, hingga ancaman kekeringan mendadak sering kali menjadi dalang utama gagal panen massal yang merugikan petani secara materiel dan waktu.
+                  Sektor pertanian adalah yang paling rentan terdampak oleh krisis iklim. Pola cuaca yang tidak menentu, pergeseran musim tanam, hingga ancaman kekeringan mendadak sering kali menjadi penyebab utama gagal panen massal yang merugikan petani secara materiel dan waktu.
                 </p>
               </div>
             </div>
@@ -394,11 +394,11 @@ export default function LandingPage() {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-500/5 to-transparent rounded-bl-full pointer-events-none" />
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary-light/10 flex items-center justify-center text-primary-light shadow-[0_0_30px_rgba(139,195,74,0.15)] mb-8">
-                  <Droplets className="w-8 h-8" />
+                  <Activity className="w-8 h-8" />
                 </div>
-                <h3 className="text-white font-extrabold text-2xl md:text-3xl mb-4 tracking-tight">Krisis Air Tanah</h3>
+                <h3 className="text-white font-extrabold text-2xl md:text-3xl mb-4 tracking-tight">Perubahan Agroklimatologi</h3>
                 <p className="text-text-muted text-sm md:text-base leading-relaxed">
-                  Penyusutan kandungan air tanah secara diam-diam menghambat pertumbuhan akar padi. Kami melacak tingkat kelembapan secara real-time langsung ke genggaman Anda.
+                  Pergeseran tren suhu dan curah hujan mengancam kesesuaian lahan. EcoTani menganalisis data historis iklim 30 tahun (1996–2025) untuk memproyeksikan perubahan pada lahan Anda.
                 </p>
               </motion.div>
             </div>
@@ -419,7 +419,7 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-                Kami menghadirkan platform mitigasi berbasis data geospasial untuk membantu Anda mengambil langkah tepat sebelum terlambat.
+                Kanal teknologi mitigasi cerdas berbasis data geospasial presisi untuk menjaga produktivitas komoditas tani Anda.
               </p>
             </div>
 
@@ -436,9 +436,9 @@ export default function LandingPage() {
               >
                 <div className="p-8 md:p-10">
                   <span className="text-xs font-bold text-primary-light uppercase tracking-widest mb-3 inline-block">Geospasial Presisi</span>
-                  <h3 className="text-white font-extrabold text-2xl md:text-3xl mb-4 group-hover:text-primary-light transition-colors">Plotting Lahan Sawah</h3>
+                  <h3 className="text-white font-extrabold text-2xl md:text-3xl mb-4 group-hover:text-primary-light transition-colors">Plotting Lahan Tani</h3>
                   <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-lg">
-                    Tandai dan petakan koordinat sawah Anda dengan mudah langsung di peta satelit. Sistem kami akan memetakan batas wilayah lahan Anda secara presisi untuk pemantauan yang terisolasi dan akurat.
+                    Tandai dan petakan koordinat lahan tani Anda dengan mudah langsung di peta satelit. Sistem kami akan memetakan batas wilayah lahan Anda secara presisi untuk pemantauan yang terfokus dan akurat.
                   </p>
                 </div>
                 <div className="w-full h-64 overflow-hidden relative mt-auto border-t border-white/[0.04]">
@@ -461,12 +461,12 @@ export default function LandingPage() {
               >
                 <div className="p-8">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold text-primary-light uppercase tracking-widest">Real-Time NDVI</span>
+                    <span className="text-xs font-bold text-primary-light uppercase tracking-widest">PEMETAAN SATELIT</span>
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
                   <h3 className="text-white font-extrabold text-xl mb-3">Analisis Satelit</h3>
                   <p className="text-text-muted text-xs md:text-sm leading-relaxed">
-                    Pantau indeks vegetasi tanaman dan kelembapan tanah secara otomatis melalui sensor satelit Sentinel-2.
+                    Pantau data elevasi, kondisi cuaca, dan parameter fisik tanah secara otomatis melalui integrasi data satelit dan API geospasial.
                   </p>
                 </div>
               </motion.div>
@@ -488,7 +488,7 @@ export default function LandingPage() {
                 </div>
               </motion.div>
 
-              {/* Card 4: Stats Filler (col-span-12 - Full Width Bottom) */}
+              {/* Card 4: Stats Filler */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -498,14 +498,14 @@ export default function LandingPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
                   <div className="flex flex-col gap-2">
-                    <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Tingkat Akurasi</span>
+                    <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Target Akurasi</span>
                     <AnimatedNumber value={98.7} decimals={1} suffix="%" duration={2.5} className="text-white font-black text-3xl md:text-4xl" />
-                    <p className="text-text-muted text-xs">Peta prediksi cuaca lokal berbasis AI.</p>
+                    <p className="text-text-muted text-xs">Peta prediksi cuaca lokal presisi.</p>
                   </div>
                   <div className="flex flex-col gap-2 border-t md:border-t-0 md:border-x border-white/[0.06] pt-6 md:pt-0 md:px-8">
-                    <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Lahan Terlindungi</span>
+                    <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Target Lahan Terjangkau</span>
                     <AnimatedNumber value={12400} suffix="+ Ha" duration={2.5} className="text-primary-light font-black text-3xl md:text-4xl" />
-                    <p className="text-text-muted text-xs">Sawah yang telah dipetakan di Indonesia.</p>
+                    <p className="text-text-muted text-xs">Lahan tani yang diproyeksikan terpetakan di Indonesia.</p>
                   </div>
                   <div className="flex flex-col gap-2 border-t md:border-t-0 pt-6 md:pt-0">
                     <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Waktu Respon EWS</span>
@@ -532,7 +532,7 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="text-text-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-                Kami menghadirkan platform mitigasi berbasis data geospasial untuk membantu Anda mengambil langkah tepat sebelum terlambat.
+                Panduan 3 langkah praktis mulai dari pemetaan koordinat hingga penerimaan notifikasi peringatan dini.
               </p>
             </div>
 
@@ -552,7 +552,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex-grow pt-2 md:pt-0">
                   <h3 className="text-white font-extrabold text-lg md:text-xl mb-3 group-hover:text-primary-light transition-colors">Buat Akun & Cari Lokasi</h3>
-                  <p className="text-text-muted text-sm leading-relaxed max-w-[280px] md:mx-auto">Daftar gratis di platform kami, cari lokasi sawah Anda secara presisi di peta digital.</p>
+                  <p className="text-text-muted text-sm leading-relaxed max-w-[280px] md:mx-auto">Daftar gratis di platform kami, cari lokasi lahan tani Anda secara presisi di peta digital.</p>
                 </div>
               </motion.div>
 
@@ -569,7 +569,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex-grow pt-2 md:pt-0">
                   <h3 className="text-white font-extrabold text-lg md:text-xl mb-3 group-hover:text-primary-light transition-colors">Gambar Batas Lahan</h3>
-                  <p className="text-text-muted text-sm leading-relaxed max-w-[280px] md:mx-auto">Gunakan alat gambar peta untuk menandai sawah Anda secara langsung dengan membuat polygon.</p>
+                  <p className="text-text-muted text-sm leading-relaxed max-w-[280px] md:mx-auto">Gunakan alat gambar peta untuk menandai lahan tani Anda secara langsung dengan membuat poligon.</p>
                 </div>
               </motion.div>
 
@@ -588,7 +588,7 @@ export default function LandingPage() {
                   <h3 className="text-white font-extrabold text-lg md:text-xl mb-3 group-hover:text-primary-light transition-colors flex flex-col md:block">
                     <span>Pantau & Terima Notifikasi</span>
                   </h3>
-                  <p className="text-text-muted text-sm leading-relaxed max-w-[280px] md:mx-auto">Cek kondisi tanah secara real-time di dashboard dan terima pesan peringatan EWS jika anomali mendekat.</p>
+                  <p className="text-text-muted text-sm leading-relaxed max-w-[280px] md:mx-auto">Cek kondisi tanah secara real-time di dashboard dan terima notifikasi dari Sistem Peringatan Dini (EWS) jika anomali cuaca mendekat.</p>
                 </div>
               </motion.div>
             </div>
@@ -608,7 +608,7 @@ export default function LandingPage() {
                 <span className="text-white font-extrabold text-2xl tracking-tight">EcoTani</span>
               </a>
               <p className="text-text-muted text-sm md:text-base leading-relaxed max-w-md">
-                Platform cerdas pemetaan sawah berbasis data satelit real-time untuk mitigasi kegagalan panen dan pemantauan anomali cuaca ekstrim di Indonesia.
+                Platform cerdas pemetaan lahan tani berbasis data satelit real-time untuk mitigasi kegagalan panen dan pemantauan anomali cuaca ekstrim di Indonesia.
               </p>
               <a 
                 href="mailto:info.ecotani@gmail.com" 

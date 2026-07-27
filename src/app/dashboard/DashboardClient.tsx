@@ -526,7 +526,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
         setNeedProfileSetup(false);
         await loadDashboardData(userId);
       } else {
-        // Profile does not exist, trigger profile setup flow (PRD Flowchart: Akun Baru?)
+        // Profile does not exist, trigger profile setup flow
         setNeedProfileSetup(true);
       }
     } catch (e) {
@@ -897,7 +897,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
 
 
   // ==========================================================================
-  // VIEW: PROFILE SETUP (PRD Flowchart: Tanya Profil Petani Baru)
+  // VIEW: PROFILE SETUP
   // ==========================================================================
   if (needProfileSetup) {
     return (
@@ -2894,7 +2894,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                   const newStatus = e.target.value as RiwayatPanen['statusHasil'];
                   setStatusHasil(newStatus);
                   
-                  // Auto recalculate berat panen based on status (Smart feature)
+                  // Auto recalculate berat panen based on status
                   const cropData = cropsList.find(t => t.nama === selectedLahan.varietasDitanam);
                   const potensiAvg = 0.75;
                   

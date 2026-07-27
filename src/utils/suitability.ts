@@ -88,8 +88,8 @@ export function cekKelayakan(lahan: Lahan, tanamanId: string): HasilEvaluasi {
 
   const kendala: string[] = [];
   
-  // Weights (climate core: 60%, structural/topographical secondary: 30%, Ketinggian: 10%)
-  // Sum = 90
+  // Bobot evaluasi (iklim utama: 60%, struktur/topografi sekunder: 30%, ketinggian: 10%)
+  // Total = 90
   const weights = {
     suhu: 20,
     curahHujan: 20,
@@ -115,7 +115,7 @@ export function cekKelayakan(lahan: Lahan, tanamanId: string): HasilEvaluasi {
     suhuScore = weights.suhu * 0.8; // S2 reduction
   }
   weightedScore += suhuScore;
-  weightedPotentialScore += suhuScore; // Not remediable
+  weightedPotentialScore += suhuScore; // Tidak dapat dimitigasi langsung
 
   // 2. Curah Hujan (20)
   let curahHujanScore = weights.curahHujan;
@@ -127,7 +127,7 @@ export function cekKelayakan(lahan: Lahan, tanamanId: string): HasilEvaluasi {
     curahHujanScore = weights.curahHujan * 0.8; // S2
   }
   weightedScore += curahHujanScore;
-  weightedPotentialScore += curahHujanScore; // Not remediable
+  weightedPotentialScore += curahHujanScore; // Tidak dapat dimitigasi langsung
 
   // 3. pH (20)
   const pHVal = parsePH(lahan.pH);
@@ -196,11 +196,11 @@ export function cekKelayakan(lahan: Lahan, tanamanId: string): HasilEvaluasi {
   }
   weightedPotentialScore += drainasePotential;
 
-  // Normalize scores
+  // Normalisasi skor (0 - 100)
   const skor = Math.max(0, Math.min(100, Math.round((weightedScore / totalWeight) * 100)));
   const skorPotensial = Math.max(0, Math.min(100, Math.round((weightedPotentialScore / totalWeight) * 100)));
 
-  // Final Decision (encouraging)
+  // Keputusan Akhir Kelayakan
   const layak = skorPotensial >= 50;
 
   // Menentukan kebutuhan air harian per m²
