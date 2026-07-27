@@ -5976,5 +5976,793 @@
         }
       }
     }
+  },
+  {
+    "komoditas": "Kentang",
+    "nama_latin": "Solanum tuberosum",
+    "kriteria_tumbuh": {
+      "temperatur": {
+        "nama": "Temperatur Rerata (°C)",
+        "S1": {
+          "min": 15,
+          "max": 25
+        },
+        "S2": [
+          {
+            "min": 10,
+            "max": 15
+          },
+          {
+            "min": 25,
+            "max": 28
+          }
+        ],
+        "S3": [
+          {
+            "min": 7,
+            "max": 10
+          },
+          {
+            "min": 28,
+            "max": 30
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 7
+          },
+          {
+            "operator": ">",
+            "value": 30
+          }
+        ]
+      },
+      "ketinggian": {
+        "nama": "Ketinggian Tempat (m dpl)",
+        "S1": {
+          "min": 1000,
+          "max": 2000
+        },
+        "S2": [
+          {
+            "min": 600,
+            "max": 1000
+          },
+          {
+            "min": 2000,
+            "max": 2400
+          }
+        ],
+        "S3": [
+          {
+            "min": 300,
+            "max": 600
+          },
+          {
+            "min": 2400,
+            "max": 2800
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 300
+          },
+          {
+            "operator": ">",
+            "value": 2800
+          }
+        ]
+      },
+      "curah_hujan": {
+        "nama": "Curah Hujan Tahunan (mm)",
+        "S1": {
+          "min": 500,
+          "max": 800
+        },
+        "S2": [
+          {
+            "min": 350,
+            "max": 500
+          },
+          {
+            "min": 800,
+            "max": 1500
+          }
+        ],
+        "S3": [
+          {
+            "min": 250,
+            "max": 350
+          },
+          {
+            "min": 1500,
+            "max": 2000
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 250
+          },
+          {
+            "operator": ">",
+            "value": 2000
+          }
+        ]
+      },
+      "drainase": {
+        "nama": "Drainase Lahan",
+        "S1": [
+          "baik"
+        ],
+        "S2": [
+          "sedang"
+        ],
+        "S3": [
+          "agak terhambat"
+        ],
+        "N": [
+          "terhambat",
+          "sangat terhambat",
+          "cepat"
+        ]
+      },
+      "tekstur_tanah": {
+        "nama": "Tekstur Media Perakaran",
+        "S1": [
+          "sedang",
+          "agak halus"
+        ],
+        "S2": [
+          "halus"
+        ],
+        "S3": [
+          "agak kasar"
+        ],
+        "N": [
+          "kasar"
+        ]
+      },
+      "ph_tanah": {
+        "nama": "Tingkat Keasaman pH H2O",
+        "S1": {
+          "min": 5,
+          "max": 6.2
+        },
+        "S2": [
+          {
+            "min": 4.5,
+            "max": 5
+          },
+          {
+            "min": 6.2,
+            "max": 7.5
+          }
+        ],
+        "S3": [
+          {
+            "min": 4.2,
+            "max": 4.5
+          },
+          {
+            "min": 7.5,
+            "max": 8.5
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 4.2
+          },
+          {
+            "operator": ">",
+            "value": 8.5
+          }
+        ]
+      },
+      "lereng": {
+        "nama": "Kemiringan Lereng (%)",
+        "S1": {
+          "operator": "<",
+          "value": 8
+        },
+        "S2": {
+          "min": 8,
+          "max": 16
+        },
+        "S3": {
+          "min": 16,
+          "max": 30
+        },
+        "N": {
+          "operator": ">",
+          "value": 30
+        }
+      }
+    }
+  },
+  {
+    "komoditas": "Wortel",
+    "nama_latin": "Daucus carota",
+    "kriteria_tumbuh": {
+      "temperatur": {
+        "nama": "Temperatur Rerata (°C)",
+        "S1": {
+          "min": 15,
+          "max": 24
+        },
+        "S2": [
+          {
+            "min": 8,
+            "max": 15
+          },
+          {
+            "min": 24,
+            "max": 27
+          }
+        ],
+        "S3": [
+          {
+            "min": 3,
+            "max": 8
+          },
+          {
+            "min": 27,
+            "max": 30
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 3
+          },
+          {
+            "operator": ">",
+            "value": 30
+          }
+        ]
+      },
+      "ketinggian": {
+        "nama": "Ketinggian Tempat (m dpl)",
+        "S1": {
+          "min": 1000,
+          "max": 1800
+        },
+        "S2": [
+          {
+            "min": 600,
+            "max": 1000
+          },
+          {
+            "min": 1800,
+            "max": 2200
+          }
+        ],
+        "S3": [
+          {
+            "min": 300,
+            "max": 600
+          },
+          {
+            "min": 2200,
+            "max": 2600
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 300
+          },
+          {
+            "operator": ">",
+            "value": 2600
+          }
+        ]
+      },
+      "curah_hujan": {
+        "nama": "Curah Hujan Tahunan (mm)",
+        "S1": {
+          "min": 600,
+          "max": 1200
+        },
+        "S2": [
+          {
+            "min": 500,
+            "max": 600
+          },
+          {
+            "min": 1200,
+            "max": 2500
+          }
+        ],
+        "S3": [
+          {
+            "min": 400,
+            "max": 500
+          },
+          {
+            "min": 2500,
+            "max": 4000
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 400
+          },
+          {
+            "operator": ">",
+            "value": 4000
+          }
+        ]
+      },
+      "drainase": {
+        "nama": "Drainase Lahan",
+        "S1": [
+          "baik"
+        ],
+        "S2": [
+          "sedang"
+        ],
+        "S3": [
+          "agak terhambat"
+        ],
+        "N": [
+          "terhambat",
+          "sangat terhambat",
+          "cepat"
+        ]
+      },
+      "tekstur_tanah": {
+        "nama": "Tekstur Media Perakaran",
+        "S1": [
+          "sedang",
+          "agak halus"
+        ],
+        "S2": [
+          "halus"
+        ],
+        "S3": [
+          "agak kasar"
+        ],
+        "N": [
+          "kasar"
+        ]
+      },
+      "ph_tanah": {
+        "nama": "Tingkat Keasaman pH H2O",
+        "S1": {
+          "min": 5.8,
+          "max": 6.8
+        },
+        "S2": [
+          {
+            "min": 5,
+            "max": 5.8
+          },
+          {
+            "min": 6.8,
+            "max": 7.8
+          }
+        ],
+        "S3": [
+          {
+            "min": 4.2,
+            "max": 5
+          },
+          {
+            "min": 7.8,
+            "max": 8.7
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 4.2
+          },
+          {
+            "operator": ">",
+            "value": 8.7
+          }
+        ]
+      },
+      "lereng": {
+        "nama": "Kemiringan Lereng (%)",
+        "S1": {
+          "operator": "<",
+          "value": 8
+        },
+        "S2": {
+          "min": 8,
+          "max": 16
+        },
+        "S3": {
+          "min": 16,
+          "max": 30
+        },
+        "N": {
+          "operator": ">",
+          "value": 30
+        }
+      }
+    }
+  },
+  {
+    "komoditas": "Semangka",
+    "nama_latin": "Citrullus lanatus",
+    "kriteria_tumbuh": {
+      "temperatur": {
+        "nama": "Temperatur Rerata (°C)",
+        "S1": {
+          "min": 20,
+          "max": 35
+        },
+        "S2": [
+          {
+            "min": 17,
+            "max": 20
+          },
+          {
+            "min": 35,
+            "max": 38
+          }
+        ],
+        "S3": [
+          {
+            "min": 15,
+            "max": 17
+          },
+          {
+            "min": 38,
+            "max": 40
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 15
+          },
+          {
+            "operator": ">",
+            "value": 40
+          }
+        ]
+      },
+      "ketinggian": {
+        "nama": "Ketinggian Tempat (m dpl)",
+        "S1": {
+          "operator": "<",
+          "value": 400
+        },
+        "S2": {
+          "min": 400,
+          "max": 700
+        },
+        "S3": {
+          "min": 700,
+          "max": 1000
+        },
+        "N": {
+          "operator": ">",
+          "value": 1000
+        }
+      },
+      "curah_hujan": {
+        "nama": "Curah Hujan Tahunan (mm)",
+        "S1": {
+          "min": 500,
+          "max": 700
+        },
+        "S2": [
+          {
+            "min": 450,
+            "max": 500
+          },
+          {
+            "min": 700,
+            "max": 1200
+          }
+        ],
+        "S3": [
+          {
+            "min": 400,
+            "max": 450
+          },
+          {
+            "min": 1200,
+            "max": 1800
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 400
+          },
+          {
+            "operator": ">",
+            "value": 1800
+          }
+        ]
+      },
+      "drainase": {
+        "nama": "Drainase Lahan",
+        "S1": [
+          "baik"
+        ],
+        "S2": [
+          "sedang"
+        ],
+        "S3": [
+          "agak terhambat"
+        ],
+        "N": [
+          "terhambat",
+          "sangat terhambat",
+          "cepat"
+        ]
+      },
+      "tekstur_tanah": {
+        "nama": "Tekstur Media Perakaran",
+        "S1": [
+          "sedang",
+          "agak kasar"
+        ],
+        "S2": [
+          "halus"
+        ],
+        "S3": [
+          "kasar"
+        ],
+        "N": [
+          "sangat kasar"
+        ]
+      },
+      "ph_tanah": {
+        "nama": "Tingkat Keasaman pH H2O",
+        "S1": {
+          "min": 6,
+          "max": 7
+        },
+        "S2": [
+          {
+            "min": 5.7,
+            "max": 6
+          },
+          {
+            "min": 7,
+            "max": 7.3
+          }
+        ],
+        "S3": [
+          {
+            "min": 5.5,
+            "max": 5.7
+          },
+          {
+            "min": 7.3,
+            "max": 7.5
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 5.5
+          },
+          {
+            "operator": ">",
+            "value": 7.5
+          }
+        ]
+      },
+      "lereng": {
+        "nama": "Kemiringan Lereng (%)",
+        "S1": {
+          "operator": "<",
+          "value": 8
+        },
+        "S2": {
+          "min": 8,
+          "max": 16
+        },
+        "S3": {
+          "min": 16,
+          "max": 30
+        },
+        "N": {
+          "operator": ">",
+          "value": 30
+        }
+      }
+    }
+  },
+  {
+    "komoditas": "Melon",
+    "nama_latin": "Cucumis melo",
+    "kriteria_tumbuh": {
+      "temperatur": {
+        "nama": "Temperatur Rerata (°C)",
+        "S1": {
+          "min": 18,
+          "max": 30
+        },
+        "S2": [
+          {
+            "min": 12,
+            "max": 18
+          },
+          {
+            "min": 30,
+            "max": 33
+          }
+        ],
+        "S3": [
+          {
+            "min": 9,
+            "max": 12
+          },
+          {
+            "min": 33,
+            "max": 35
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 9
+          },
+          {
+            "operator": ">",
+            "value": 35
+          }
+        ]
+      },
+      "ketinggian": {
+        "nama": "Ketinggian Tempat (m dpl)",
+        "S1": {
+          "operator": "<",
+          "value": 500
+        },
+        "S2": {
+          "min": 500,
+          "max": 800
+        },
+        "S3": {
+          "min": 800,
+          "max": 1000
+        },
+        "N": {
+          "operator": ">",
+          "value": 1000
+        }
+      },
+      "curah_hujan": {
+        "nama": "Curah Hujan Tahunan (mm)",
+        "S1": {
+          "min": 1000,
+          "max": 1300
+        },
+        "S2": [
+          {
+            "min": 950,
+            "max": 1000
+          },
+          {
+            "min": 1300,
+            "max": 1800
+          }
+        ],
+        "S3": [
+          {
+            "min": 900,
+            "max": 950
+          },
+          {
+            "min": 1800,
+            "max": 2500
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 900
+          },
+          {
+            "operator": ">",
+            "value": 2500
+          }
+        ]
+      },
+      "drainase": {
+        "nama": "Drainase Lahan",
+        "S1": [
+          "baik"
+        ],
+        "S2": [
+          "sedang"
+        ],
+        "S3": [
+          "agak terhambat"
+        ],
+        "N": [
+          "terhambat",
+          "sangat terhambat",
+          "cepat"
+        ]
+      },
+      "tekstur_tanah": {
+        "nama": "Tekstur Media Perakaran",
+        "S1": [
+          "sedang",
+          "agak halus"
+        ],
+        "S2": [
+          "halus"
+        ],
+        "S3": [
+          "agak kasar"
+        ],
+        "N": [
+          "kasar"
+        ]
+      },
+      "ph_tanah": {
+        "nama": "Tingkat Keasaman pH H2O",
+        "S1": {
+          "min": 6,
+          "max": 7.5
+        },
+        "S2": [
+          {
+            "min": 5.5,
+            "max": 6
+          },
+          {
+            "min": 7.5,
+            "max": 8
+          }
+        ],
+        "S3": [
+          {
+            "min": 5,
+            "max": 5.5
+          },
+          {
+            "min": 8,
+            "max": 8.7
+          }
+        ],
+        "N": [
+          {
+            "operator": "<",
+            "value": 5
+          },
+          {
+            "operator": ">",
+            "value": 8.7
+          }
+        ]
+      },
+      "lereng": {
+        "nama": "Kemiringan Lereng (%)",
+        "S1": {
+          "operator": "<",
+          "value": 8
+        },
+        "S2": {
+          "min": 8,
+          "max": 16
+        },
+        "S3": {
+          "min": 16,
+          "max": 30
+        },
+        "N": {
+          "operator": ">",
+          "value": 30
+        }
+      }
+    }
   }
 ]
