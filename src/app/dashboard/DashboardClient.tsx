@@ -1234,7 +1234,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
     ];
 
     return (
-      <div className="min-h-screen bg-[#050505] py-12 px-4 relative overflow-hidden">
+      <div className="min-h-screen bg-[#050505] py-12 px-4 relative overflow-x-hidden">
         {/* Ambient background glow */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -1335,7 +1335,7 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                       {isKategoriDropdownOpen && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setIsKategoriDropdownOpen(false)} />
-                          <div className="absolute z-50 mt-2 w-full bg-zinc-950/95 border border-white/10 rounded-2xl shadow-2xl p-2 space-y-1 backdrop-blur-xl">
+                          <div className="absolute z-50 mt-2 w-full bg-zinc-950/95 border border-white/10 rounded-2xl shadow-2xl p-2 space-y-1 backdrop-blur-xl max-h-60 overflow-y-auto custom-scrollbar overscroll-contain">
                             <button
                               type="button"
                               onClick={() => {
@@ -1395,11 +1395,10 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                                 value={cropSearchQuery}
                                 onChange={(e) => setCropSearchQuery(e.target.value)}
                                 className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white focus:outline-none focus:border-primary transition-all text-xs"
-                                autoFocus
                               />
                               <Search className="absolute left-3 top-3 w-3.5 h-3.5 text-gray-400" />
                             </div>
-                            <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar">
+                            <div className="max-h-48 md:max-h-60 overflow-y-auto space-y-1 custom-scrollbar overscroll-contain pb-2">
                               {filteredCrops.length > 0 ? (
                                 filteredCrops.map(crop => (
                                   <button
@@ -2147,17 +2146,18 @@ export default function DashboardClient({ initialUser }: DashboardClientProps) {
                                   >
                                     <div className="p-4 space-y-2.5 max-h-[400px] overflow-y-auto custom-scrollbar">
                                       {group.items.map(alt => (
-                                        <div key={alt.tanaman.id} className={`flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl text-xs ${group.borderColor} hover:shadow-md transition-all`}>
+                                        <div key={alt.tanaman.id} className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 bg-white/5 border border-white/5 rounded-2xl text-xs ${group.borderColor} hover:shadow-md transition-all`}>
                                           <div className="space-y-1">
                                             <strong className="text-white text-sm block">{alt.tanaman.nama}</strong>
                                             <span className="text-gray-400 block text-[10px]">Estimasi panen: {alt.tanaman.siklus_tanam_days || 120} hari</span>
                                           </div>
-                                          <div className="flex items-center gap-4">
+                                          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                                             <span className={`${group.scoreColor} font-semibold px-2.5 py-1 rounded-full border text-[10px] uppercase tracking-wider`}>Kecocokan: {alt.evaluasi.skor}%</span>
                                             <button
                                               type="button"
                                               onClick={() => {
                                                 setSelectedCropId(alt.tanaman.id);
+                                                setSelectedKategori(alt.tanaman.kategori || '');
                                                 setActiveStep(1);
                                                 handleResetStressTest();
                                               }}

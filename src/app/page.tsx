@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import {
   Sprout,
   ArrowRight,
@@ -498,17 +499,17 @@ export default function LandingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
                   <div className="flex flex-col gap-2">
                     <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Tingkat Akurasi</span>
-                    <span className="text-white font-black text-3xl md:text-4xl">98.7%</span>
+                    <AnimatedNumber value={98.7} decimals={1} suffix="%" duration={2.5} className="text-white font-black text-3xl md:text-4xl" />
                     <p className="text-text-muted text-xs">Peta prediksi cuaca lokal berbasis AI.</p>
                   </div>
                   <div className="flex flex-col gap-2 border-t md:border-t-0 md:border-x border-white/[0.06] pt-6 md:pt-0 md:px-8">
                     <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Lahan Terlindungi</span>
-                    <span className="text-primary-light font-black text-3xl md:text-4xl">12,400+ Ha</span>
+                    <AnimatedNumber value={12400} suffix="+ Ha" duration={2.5} className="text-primary-light font-black text-3xl md:text-4xl" />
                     <p className="text-text-muted text-xs">Sawah yang telah dipetakan di Indonesia.</p>
                   </div>
                   <div className="flex flex-col gap-2 border-t md:border-t-0 pt-6 md:pt-0">
                     <span className="text-text-muted text-xs uppercase tracking-wider font-semibold">Waktu Respon EWS</span>
-                    <span className="text-white font-black text-3xl md:text-4xl">&lt; 3 Detik</span>
+                    <AnimatedNumber value={3} prefix="< " suffix=" Detik" duration={2.5} className="text-white font-black text-3xl md:text-4xl" />
                     <p className="text-text-muted text-xs">Pengiriman pesan push cuaca buruk.</p>
                   </div>
                 </div>
