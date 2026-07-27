@@ -370,7 +370,7 @@ export function evaluasiTanggalTanamDinamis(
 
 
 // -------------------------------------------------------------
-// DYNAMIC DATABASE EVALUATORS FOR 25 CROPS
+// DYNAMIC DATABASE EVALUATORS FOR ALL CROPS
 // -------------------------------------------------------------
 
 function parsePH(phStr?: string | number): number {
