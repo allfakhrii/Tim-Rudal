@@ -1,11 +1,11 @@
 <div align="center">
   <img src="public/assets/logo.webp" alt="Logo" width="120" />
   
-  # Ecotani
+  # EcoTani
   **Platform Pemetaan Lahan & Analisis Cerdas Kelayakan Tanam Nusantara**
 
-  [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+  [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
   [![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
   [![Leaflet](https://img.shields.io/badge/Leaflet-Maps-199900?style=for-the-badge&logo=leaflet)](https://leafletjs.com/)
 
@@ -15,7 +15,7 @@
 ---
 
 ## 📖 Deskripsi Proyek
-**Smart AgriMap** adalah aplikasi berbasis web revolusioner yang dirancang khusus untuk membantu petani, penyuluh pertanian, dan pengambil kebijakan dalam menentukan **komoditas tanaman paling presisi dan menguntungkan** untuk suatu petak lahan.
+**EcoTani** adalah aplikasi berbasis web revolusioner yang dirancang khusus untuk membantu petani, penyuluh pertanian, dan pengambil kebijakan dalam menentukan **komoditas tanaman paling presisi dan menguntungkan** untuk suatu petak lahan.
 
 Dengan menggabungkan teknologi Sistem Informasi Geografis (GIS) dan algoritma kesesuaian lahan (merujuk pada standar agroklimatologi / FAO), aplikasi ini mampu melakukan evaluasi mendalam terhadap suhu, curah hujan, pH, elevasi (kemiringan), dan tekstur tanah. Hasilnya bukan hanya skor kecocokan, melainkan juga **langkah mitigasi taktis** (kebutuhan pupuk, kapur pertanian, dan irigasi) serta perhitungan proyeksi hasil panen.
 
@@ -64,8 +64,8 @@ Ikuti langkah-langkah berikut untuk menjalankan proyek ini di komputer Anda (Loc
 
 1. **Clone repository ini**
    ```bash
-   git clone https://github.com/username-anda/smart-agrimap-tic.git
-   cd smart-agrimap-tic
+   git clone https://github.com/allfakhrii/Tim-Rudal.git
+   cd Tim-Rudal
    ```
 
 2. **Install Dependencies**
